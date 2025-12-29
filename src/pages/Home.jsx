@@ -8,8 +8,8 @@ import {
   FileBadge, Scale
 } from 'lucide-react';
 
-// Automatically switches between Localhost and Vercel Backend
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+// --- THE FIX: We added '/api' to the link ---
+const API_URL = "https://rex360backend.vercel.app/api";
 
 const SERVICES = [
   { 
@@ -58,8 +58,13 @@ export default function Home() {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
+    // This fetches from https://rex360backend.vercel.app/api/slides
+    // The previous code was missing the '/api' part!
     fetch(`${API_URL}/slides`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch");
+        return res.json();
+      })
       .then(data => {
         if (!data) return;
         const heroData = data.filter(item => item.section === 'hero');
@@ -70,7 +75,7 @@ export default function Home() {
         if (profileData) setProfile(profileData);
         if (certData.length > 0) setCerts(certData);
       })
-      .catch(() => {});
+      .catch(err => console.error("Slider Fetch Error:", err));
   }, []);
 
   useEffect(() => {
@@ -91,7 +96,6 @@ export default function Home() {
     <div className="bg-white min-h-screen text-slate-900 font-sans selection:bg-green-100 selection:text-green-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300">
       
       {/* --- HERO SECTION --- */}
-      {/* FIX: Added 'pt-32' to push content down below Navbar and 'min-h-screen' for full height */}
       <section className="relative min-h-screen flex flex-col justify-center pt-32 pb-20 overflow-hidden bg-[#0a0a0a]">
         
         <div className="absolute inset-0 z-0 flex items-center justify-center bg-[#0a0a0a]">
@@ -100,7 +104,7 @@ export default function Home() {
                  {slide.type === 'video' ? (
                     <video src={slide.image_url} autoPlay muted loop playsInline className="w-full h-full object-contain"/>
                  ) : (
-                    <div className="w-full h-full bg-contain bg-center bg-no-repeat" style={{ backgroundImage: `url(${slide.image_url})` }}/>
+                    <div className="w-full h-full bg-cover bg-center bg-no-repeat" style={{ backgroundImage: `url(${slide.image_url})` }}/>
                  )}
                  <div className="absolute inset-0 bg-black/70"></div>
                </div>
@@ -109,14 +113,12 @@ export default function Home() {
         
         <div className="relative z-10 px-6 max-w-7xl mx-auto w-full">
           <Reveal>
-            {/* The Badge - Now visible because of pt-32 */}
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-green-500/30 bg-green-900/40 text-green-400 font-bold tracking-widest uppercase text-xs mb-6 backdrop-blur-md">
               <FileBadge size={14}/> Accredited CAC Agent
             </div>
           </Reveal>
           
           <Reveal delay={0.2}>
-            {/* FIX: Reduced text size from text-7xl to text-6xl */}
             <h1 className="text-4xl md:text-6xl font-serif font-bold leading-tight text-white mb-6 drop-shadow-2xl">
               Formalize Your <br /> 
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">Corporate Identity.</span>
