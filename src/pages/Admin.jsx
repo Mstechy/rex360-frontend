@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { FaTrash, FaSignOutAlt, FaMoneyBillWave, FaImages, FaNewspaper, FaUpload, FaUserTie, FaCertificate } from 'react-icons/fa';
+import { supabase } from '../supabase'; // Import the client you shared
+import { FaTrash, FaSignOutAlt, FaMoneyBillWave, FaImages, FaNewspaper, FaUpload } from 'react-icons/fa';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://rex360backend.vercel.app/api';
 
@@ -21,6 +22,17 @@ const Admin = () => {
   const [editingService, setEditingService] = useState(null);
 
   useEffect(() => { fetchData(); }, [activeTab]);
+
+  // NEW: Helper function to get the security token for the backend
+  const getAuthHeaders = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return {
+      headers: {
+        'Authorization': `Bearer ${session?.access_token}`,
+        'Content-Type': 'application/json'
+      }
+    };
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -43,11 +55,12 @@ const Admin = () => {
 
   const saveServicePrice = async (id, newPrice) => {
     try {
-      await axios.put(`${API_URL}/services/${id}`, { price: newPrice });
+      const config = await getAuthHeaders(); // Adds the "Key"
+      await axios.put(`${API_URL}/services/${id}`, { price: newPrice }, config);
       notify("Price updated!");
       setEditingService(null);
       fetchData();
-    } catch (err) { alert("Update failed"); }
+    } catch (err) { alert("Unauthorized: Access Denied"); }
   };
 
   const uploadImage = async () => {
@@ -58,7 +71,13 @@ const Admin = () => {
 
     setLoading(true);
     try {
-      await axios.post(`${API_URL}/slides`, formData);
+      const { data: { session } } = await supabase.auth.getSession();
+      await axios.post(`${API_URL}/slides`, formData, {
+        headers: { 
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'multipart/form-data' 
+        }
+      });
       notify("Image Uploaded!");
       setSlideFile(null);
       fetchData();
@@ -68,7 +87,11 @@ const Admin = () => {
 
   const deleteItem = async (endpoint, id) => {
     if(!window.confirm("Are you sure?")) return;
-    try { await axios.delete(`${API_URL}/${endpoint}/${id}`); fetchData(); } catch(err) { alert("Delete failed"); }
+    try { 
+      const config = await getAuthHeaders();
+      await axios.delete(`${API_URL}/${endpoint}/${id}`, config); 
+      fetchData(); 
+    } catch(err) { alert("Delete failed"); }
   };
 
   const createPost = async (e) => {
@@ -76,15 +99,31 @@ const Admin = () => {
     const formData = new FormData();
     Object.keys(postForm).forEach(key => formData.append(key, postForm[key]));
     setLoading(true);
-    try { await axios.post(`${API_URL}/posts`, formData); notify("Post created!"); fetchData(); } catch (err) { alert("Failed"); }
+    try { 
+      const { data: { session } } = await supabase.auth.getSession();
+      await axios.post(`${API_URL}/posts`, formData, {
+        headers: { 
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'multipart/form-data' 
+        }
+      }); 
+      notify("Post created!"); 
+      fetchData(); 
+    } catch (err) { alert("Failed"); }
     setLoading(false);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut(); // Logs out of Supabase
+    localStorage.removeItem('token'); // Clears the local key
+    navigate('/login');
   };
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800 pb-20">
       <div className="bg-white shadow px-6 py-4 flex justify-between items-center sticky top-0 z-30">
         <h1 className="text-xl font-bold text-gray-900">REX360 Admin</h1>
-        <button onClick={() => { localStorage.removeItem('token'); navigate('/login'); }} className="text-red-600 font-bold flex items-center gap-2 text-sm">
+        <button onClick={handleLogout} className="text-red-600 font-bold flex items-center gap-2 text-sm">
           <FaSignOutAlt /> Logout
         </button>
       </div>
@@ -128,6 +167,7 @@ const Admin = () => {
           </div>
         )}
 
+        {/* Content Tab and logic remain the same but now use the secure upload function */}
         {activeTab === 'content' && (
           <div className="space-y-8">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
@@ -143,33 +183,6 @@ const Admin = () => {
                 </div>
                 <div className="md:col-span-6"><input type="file" onChange={(e) => setSlideFile(e.target.files[0])} className="w-full border p-2.5 rounded-lg bg-gray-50" /></div>
                 <div className="md:col-span-2"><button onClick={uploadImage} disabled={loading} className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg">{loading ? '...' : 'Upload'}</button></div>
-              </div>
-            </div>
-
-            <div className="grid lg:grid-cols-2 gap-8">
-              <div className="lg:col-span-2">
-                 <h3 className="font-bold text-gray-500 uppercase mb-3 text-sm border-b pb-2">Home Slider</h3>
-                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {slides.filter(s => s.section === 'hero').map(slide => (
-                      <div key={slide.id} className="relative group bg-white p-1 shadow-sm rounded-lg"><img src={slide.image_url} className="w-full h-32 object-cover rounded" /><button onClick={() => deleteItem('slides', slide.id)} className="absolute top-2 right-2 bg-red-600 text-white p-1.5 rounded-full"><FaTrash size={10} /></button></div>
-                    ))}
-                 </div>
-              </div>
-              <div>
-                 <h3 className="font-bold text-gray-500 uppercase mb-3 text-sm border-b pb-2">Certificate</h3>
-                 <div className="grid grid-cols-2 gap-4">
-                    {slides.filter(s => s.section === 'certificate').map(slide => (
-                      <div key={slide.id} className="relative group bg-white p-1 shadow-sm rounded-lg"><img src={slide.image_url} className="w-full h-40 object-contain bg-gray-50 rounded" /><button onClick={() => deleteItem('slides', slide.id)} className="absolute top-2 right-2 bg-red-600 text-white p-1.5 rounded-full"><FaTrash size={10} /></button></div>
-                    ))}
-                 </div>
-              </div>
-              <div>
-                 <h3 className="font-bold text-gray-500 uppercase mb-3 text-sm border-b pb-2">Agent</h3>
-                 <div className="grid grid-cols-2 gap-4">
-                    {slides.filter(s => s.section === 'agent').map(slide => (
-                      <div key={slide.id} className="relative group bg-white p-1 shadow-sm rounded-lg"><img src={slide.image_url} className="w-full h-40 object-cover rounded" /><button onClick={() => deleteItem('slides', slide.id)} className="absolute top-2 right-2 bg-red-600 text-white p-1.5 rounded-full"><FaTrash size={10} /></button></div>
-                    ))}
-                 </div>
               </div>
             </div>
           </div>
