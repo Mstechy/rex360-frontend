@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 // Components
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import ScrollToTop from './components/ScrollToTop'; // The new scrolling fix
+import ScrollToTop from './components/ScrollToTop';
 
 // Pages
 import Home from './pages/Home';
@@ -20,13 +20,12 @@ import Checkout from './pages/Checkout';
 function App() {
   return (
     <Router>
-      {/* Triggers scroll to top on page change */}
+      {/* ScrollToTop must be inside Router to work */}
       <ScrollToTop />
       
       <div className="flex flex-col min-h-screen font-sans text-gray-900">
         <Navbar />
         
-        {/* flex-grow pushes the footer to the bottom */}
         <main className="flex-grow">
           <Routes>
             {/* PUBLIC PAGES */}
