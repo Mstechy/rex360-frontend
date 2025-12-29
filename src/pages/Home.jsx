@@ -1,32 +1,48 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { motion } from 'framer-motion'; // THIS BRINGS THE ANIMATIONS BACK
-import { ShieldCheck, Award, CheckCircle, FileText } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ShieldCheck, CheckCircle, FileText, ArrowRight, Briefcase, Users, Globe, Stamp } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://rex360backend.vercel.app/api';
 
 const Home = () => {
   const [slides, setSlides] = useState([]);
+  const [services, setServices] = useState([]); 
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  // 1. Fetch Slides
+  // 1. Fetch Slides & Services
   useEffect(() => {
-    const fetchSlides = async () => {
+    const fetchData = async () => {
       try {
-        const res = await axios.get(`${API_URL}/slides`);
-        const heroSlides = res.data.filter(s => s.section === 'hero');
+        // Fetch Slides
+        const slidesRes = await axios.get(`${API_URL}/slides`);
+        const heroSlides = slidesRes.data.filter(s => s.section === 'hero');
         setSlides(heroSlides.length > 0 ? heroSlides : [
            { image_url: 'https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&q=80' }
         ]);
+
+        // Fetch Services (Products)
+        const servicesRes = await axios.get(`${API_URL}/services`);
+        if (servicesRes.data.length > 0) {
+            setServices(servicesRes.data);
+        } else {
+            // Fallback if DB is empty
+            setServices([
+                { id: 'biz', title: 'Business Name', price: '₦35,000', description: 'Sole Proprietorship registration.' },
+                { id: 'ltd', title: 'Company (Ltd)', price: '₦80,000', description: 'Limited Liability Company.' },
+                { id: 'ngo', title: 'NGO / Church', price: '₦140,000', description: 'Incorporated Trustees.' },
+                { id: 'tm', title: 'Trademark', price: '₦50,000', description: 'Protect your brand identity.' },
+            ]);
+        }
       } catch (err) {
-        console.error("Error loading slides", err);
+        console.error("Error loading data", err);
       }
     };
-    fetchSlides();
+    fetchData();
   }, []);
 
-  // 2. Auto-Play
+  // 2. Auto-Play Slider
   useEffect(() => {
     if (slides.length <= 1) return;
     const interval = setInterval(() => {
@@ -36,14 +52,11 @@ const Home = () => {
   }, [slides]);
 
   return (
-    <div className="font-sans text-gray-900 bg-gray-50">
+    <div className="font-sans text-gray-900">
       
-      {/* --- HERO SECTION (ANIMATED) --- */}
-      <div className="relative w-full bg-gray-900 overflow-hidden">
-        
-        {/* Slider Images (Zoom Fixed) */}
-        <div className="relative h-[550px] md:h-[750px] w-full">
-          {slides.map((slide, index) => (
+      {/* --- 1. HERO SLIDER (Original Look + Zoom Fix) --- */}
+      <div className="relative w-full h-[500px] md:h-[650px] bg-gray-900 overflow-hidden">
+        {slides.map((slide, index) => (
             <motion.div
               key={index}
               initial={{ opacity: 0 }}
@@ -58,143 +71,125 @@ const Home = () => {
               />
               <div className="absolute inset-0 bg-black/60"></div>
             </motion.div>
-          ))}
-        </div>
+        ))}
 
-        {/* ANIMATED TEXT OVERLAY */}
+        {/* Animated Text Overlay */}
         <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-4 z-10">
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
+            transition={{ duration: 0.8 }}
           >
-            <span className="bg-green-600/90 backdrop-blur text-white px-6 py-2 rounded-full text-xs md:text-sm font-bold tracking-widest uppercase mb-6 inline-block shadow-lg border border-green-400/30">
+            <span className="bg-green-600 text-white px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-6 inline-block">
               Accredited CAC Agent
             </span>
-            <h1 className="text-4xl md:text-7xl font-serif font-bold text-white mb-6 leading-tight drop-shadow-2xl">
+            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
               Formalize Your <br />
               <span className="text-green-400">Corporate Identity</span>
             </h1>
-            <p className="text-gray-100 text-sm md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed font-light drop-shadow-md">
-              We provide seamless registration services strictly adhering to the
-              Companies and Allied Matters Act (CAMA) 2020.
+            <p className="text-gray-100 text-lg max-w-2xl mx-auto mb-8 font-light">
+              We provide seamless registration services strictly adhering to the Companies and Allied Matters Act (CAMA) 2020.
+            </p>
+            <Link to="/services" className="bg-green-600 hover:bg-green-500 text-white px-8 py-3 rounded-lg font-bold transition inline-flex items-center gap-2">
+               Start Registration <ArrowRight size={18}/>
+            </Link>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* --- 2. ACCREDITED SECTION (Exact Look from Screenshot) --- */}
+      <div className="bg-[#FDFBF7] py-20 border-b border-gray-200">
+        <div className="container mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
+          
+          {/* Left Text */}
+          <div>
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">
+              Regulatory Compliance
+            </span>
+            <h2 className="text-4xl md:text-5xl font-serif font-bold text-gray-900 mb-6 leading-tight">
+              Accredited by the <br />
+              Corporate Affairs Commission
+            </h2>
+            <p className="text-gray-600 text-lg mb-8 leading-relaxed">
+              Operating under full licensure, REX360 SOLUTIONS ensures that your pre-incorporation and post-incorporation filings meet strict statutory requirements.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/services">
-                <motion.button 
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="bg-green-600 hover:bg-green-500 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-xl shadow-green-600/20"
-                >
-                  Start Registration →
-                </motion.button>
-              </Link>
-            </div>
-          </motion.div>
-        </div>
-      </div>
-
-      {/* --- SECTION 2: WHY ACCREDITATION MATTERS --- */}
-      <div className="py-20 bg-white">
-        <div className="container mx-auto px-6">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <span className="text-green-600 font-bold uppercase tracking-wider text-sm">Regulatory Compliance</span>
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mt-2">Why Use an Accredited Agent?</h2>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              { 
-                icon: ShieldCheck, 
-                title: "Direct Portal Access", 
-                desc: "We have direct access to the CAC portal for priority filing and instant query resolution.",
-                color: "text-blue-600", bg: "bg-blue-50"
-              },
-              { 
-                icon: Award, 
-                title: "Official Licensure", 
-                desc: "Fully licensed to handle Business Names, LLCs, NGOs, and Trademarks legally.",
-                color: "text-green-600", bg: "bg-green-50"
-              },
-              { 
-                icon: FileText, 
-                title: "Certified Copies", 
-                desc: "Get your Certified True Copies (CTC) and certificates faster than third-party delays.",
-                color: "text-purple-600", bg: "bg-purple-50"
-              }
-            ].map((item, i) => (
-              <motion.div 
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.2 }}
-                viewport={{ once: true }}
-                className="p-8 rounded-2xl border border-gray-100 shadow-lg hover:shadow-xl transition-shadow bg-white"
-              >
-                <div className={`w-14 h-14 ${item.bg} ${item.color} rounded-xl flex items-center justify-center mb-6`}>
-                  <item.icon size={28} />
-                </div>
-                <h3 className="text-xl font-bold mb-3">{item.title}</h3>
-                <p className="text-gray-600 leading-relaxed">{item.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* --- SECTION 3: CERTIFICATES & TRUST --- */}
-      <div className="bg-slate-900 text-white py-20 relative overflow-hidden">
-        {/* Background Blob */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-green-600/20 rounded-full blur-[100px] pointer-events-none"></div>
-        
-        <div className="container mx-auto px-6 grid md:grid-cols-2 gap-12 items-center relative z-10">
-          <div>
-            <div className="inline-flex items-center gap-2 bg-green-500/20 text-green-300 px-3 py-1 rounded-full text-xs font-bold mb-6 border border-green-500/30">
-              <CheckCircle size={14}/> Verified & Secure
-            </div>
-            <h2 className="text-3xl md:text-5xl font-bold mb-6">Official Certifications</h2>
-            <p className="text-slate-300 text-lg mb-8 leading-relaxed">
-              REX360 SOLUTIONS is duly registered and accredited. We operate with full transparency and legal backing.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <div className="bg-white/10 backdrop-blur border border-white/10 p-4 rounded-xl">
-                 <h4 className="text-2xl font-bold text-green-400">100%</h4>
-                 <p className="text-xs text-slate-400 uppercase">Approval Rate</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur border border-white/10 p-4 rounded-xl">
-                 <h4 className="text-2xl font-bold text-blue-400">24/7</h4>
-                 <p className="text-xs text-slate-400 uppercase">Support</p>
-              </div>
+            {/* The Green Border Box */}
+            <div className="border-l-4 border-green-600 pl-6 py-2 mb-8 bg-white/50">
+              <h3 className="font-bold text-gray-900 flex items-center gap-2 mb-2">
+                <ShieldCheck className="text-green-600" size={20}/> Why Accreditation Matters
+              </h3>
+              <p className="text-gray-500 text-sm leading-relaxed">
+                Only accredited agents have direct access to the CAC portal for priority filing, query resolution, and instant retrieval of certified true copies (CTC).
+              </p>
             </div>
           </div>
 
-          <motion.div 
-            whileHover={{ scale: 1.02 }}
-            className="relative"
-          >
-             {/* Certificate Mockup */}
-             <div className="bg-white p-3 rounded-xl shadow-2xl transform rotate-2 hover:rotate-0 transition-transform duration-500">
-               <div className="aspect-[4/3] bg-gray-200 rounded-lg overflow-hidden relative">
-                  {/* Placeholder for Certificate - Upload real one in Admin later */}
-                  <img 
-                    src="https://images.unsplash.com/photo-1555421689-d68471e189f2?auto=format&fit=crop&q=80" 
-                    alt="Certificate" 
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="bg-black/50 text-white px-4 py-2 rounded font-bold backdrop-blur-sm">
-                      CAC CERTIFICATE
-                    </span>
-                  </div>
+          {/* Right Certificate Placeholder */}
+          <div className="relative">
+            <div className="bg-white p-4 rounded-xl shadow-xl border border-gray-100 transform rotate-2 hover:rotate-0 transition duration-500">
+               <div className="aspect-[4/3] bg-gray-100 rounded-lg flex flex-col items-center justify-center text-gray-400">
+                  <FileText size={48} className="mb-2 opacity-20" />
+                  <span className="text-xs uppercase font-bold opacity-40">Official Certificate</span>
                </div>
-             </div>
-          </motion.div>
+               <div className="mt-4 flex justify-between items-center">
+                 <div>
+                   <p className="text-xs font-bold text-gray-400 uppercase">Status</p>
+                   <p className="text-green-600 font-bold text-sm flex items-center gap-1">
+                     <CheckCircle size={12}/> Active
+                   </p>
+                 </div>
+                 <div className="text-right">
+                   <p className="text-xs font-bold text-gray-400 uppercase">License No.</p>
+                   <p className="text-gray-800 font-bold text-sm">RC-142280</p>
+                 </div>
+               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* --- 3. PRODUCTS LIST (Added Back So People Can Buy) --- */}
+      <div className="py-16 bg-white">
+        <div className="container mx-auto px-6">
+            <div className="text-center mb-12">
+                <span className="text-green-600 font-bold uppercase tracking-wider text-sm">Our Packages</span>
+                <h2 className="text-3xl font-bold text-gray-900 mt-2">Start Your Registration</h2>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {services.map((service, index) => (
+                    <div key={index} className="bg-slate-50 rounded-xl hover:shadow-xl transition-all p-6 border border-slate-100 group">
+                        <div className="w-12 h-12 bg-white text-green-600 rounded-lg flex items-center justify-center mb-4 shadow-sm">
+                            <Briefcase size={24}/>
+                        </div>
+                        <h3 className="font-bold text-lg text-gray-800 mb-2">{service.title}</h3>
+                        <p className="text-gray-500 text-sm mb-4 min-h-[40px] line-clamp-2">
+                           {service.description || "Professional CAC registration service."}
+                        </p>
+                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+                            <span className="text-green-700 font-bold text-lg">{service.price}</span>
+                            <Link to="/services" className="text-sm font-bold text-gray-900 hover:text-green-600 flex items-center gap-1">
+                                Order Now <ArrowRight size={14}/>
+                            </Link>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+      </div>
+
+      {/* --- 4. TRUSTED BY --- */}
+      <div className="bg-slate-50 py-12 border-t border-gray-200">
+        <div className="container mx-auto px-6 text-center">
+          <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-8">
+            Trusted by Nigerian Businesses
+          </p>
+          <div className="flex flex-wrap justify-center gap-10 opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
+             <h3 className="text-xl font-bold text-gray-800">STARTUP<span className="text-green-600">NG</span></h3>
+             <h3 className="text-xl font-bold text-gray-800">LAGOS<span className="text-blue-600">TECH</span></h3>
+             <h3 className="text-xl font-bold text-gray-800">SME<span className="text-orange-500">GROWTH</span></h3>
+          </div>
         </div>
       </div>
 
