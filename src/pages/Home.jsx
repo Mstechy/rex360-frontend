@@ -1,124 +1,107 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const multer = require('multer');
-const { createClient } = require('@supabase/supabase-js');
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import axios from 'axios';
 
-const app = express();
-const PORT = process.env.PORT || 5000;
+// Get the API link
+const API_URL = import.meta.env.VITE_API_URL || 'https://rex360backend.vercel.app/api';
 
-app.use(cors());
-app.use(express.json());
+const Home = () => {
+  const [slides, setSlides] = useState([]);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+  // 1. Fetch Slides
+  useEffect(() => {
+    const fetchSlides = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/slides`);
+        // Use 'hero' slides, or fallback to the uploaded ones
+        const heroSlides = res.data.filter(s => s.section === 'hero');
+        setSlides(heroSlides.length > 0 ? heroSlides : res.data); 
+      } catch (err) {
+        console.error("Error loading slides:", err);
+      }
+    };
+    fetchSlides();
+  }, []);
 
-async function uploadToSupabase(file) {
-    const cleanName = file.originalname.replace(/[^a-zA-Z0-9.]/g, '_');
-    const fileName = `${Date.now()}_${cleanName}`;
-    const { error } = await supabase.storage.from('uploads').upload(fileName, file.buffer, { contentType: file.mimetype });
-    if (error) throw error;
-    const { data } = supabase.storage.from('uploads').getPublicUrl(fileName);
-    return { original: data.publicUrl };
-}
+  // 2. Auto-Play (5 seconds)
+  useEffect(() => {
+    if (slides.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [slides]);
 
-// --- ROUTES ---
+  return (
+    <div className="font-sans text-gray-900">
+      
+      {/* --- HERO SECTION --- */}
+      <div className="relative w-full bg-gray-900">
+        
+        {/* FIX FOR ZOOM: 
+           h-[400px] -> Height on Phone (Shorter, so less zoom)
+           md:h-[600px] -> Height on Laptop (Taller, for impact)
+           object-top -> Keeps faces/heads visible if cropped
+        */}
+        <div className="relative h-[400px] md:h-[600px] w-full overflow-hidden">
+          {slides.map((slide, index) => (
+            <div
+              key={index}
+              className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+                index === currentSlide ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              <img
+                src={slide.image_url}
+                alt="Slide"
+                className="w-full h-full object-cover object-top"
+              />
+              <div className="absolute inset-0 bg-black/50"></div>
+            </div>
+          ))}
+        </div>
 
-// 1. Health Check
-app.get('/', (req, res) => res.json({ status: "Online", message: "REX360 Backend is running!" }));
+        {/* Text Content */}
+        <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-4">
+          <span className="bg-green-600 text-white px-3 py-1 rounded-full text-xs md:text-sm font-bold tracking-wide uppercase mb-4">
+            Accredited CAC Agent
+          </span>
+          <h1 className="text-3xl md:text-6xl font-bold text-white mb-4 leading-tight">
+            Formalize Your <br />
+            <span className="text-green-400">Corporate Identity.</span>
+          </h1>
+          <p className="text-gray-200 text-sm md:text-lg max-w-2xl mb-8">
+            We provide seamless registration services strictly adhering to the
+            Companies and Allied Matters Act (CAMA) 2020.
+          </p>
+          <div className="flex space-x-4">
+            <Link
+              to="/services"
+              className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition"
+            >
+              Start Registration →
+            </Link>
+          </div>
+        </div>
+      </div>
 
-// --- BLOG ROUTES ---
-// Get ALL Posts
-app.get('/api/posts', async (req, res) => {
-    const { data, error } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
-    if (error) return res.status(500).json({ error: error.message });
-    res.json(data);
-});
+      {/* --- TRUSTED BY SECTION --- */}
+      <div className="bg-gray-100 py-12">
+        <div className="container mx-auto px-6 text-center">
+          <p className="text-gray-500 text-sm font-semibold uppercase tracking-widest mb-6">
+            Trusted by Nigerian Businesses
+          </p>
+          <div className="flex flex-wrap justify-center gap-8 opacity-60 grayscale">
+             <h3 className="text-xl font-bold text-gray-400">STARTUP NIGERIA</h3>
+             <h3 className="text-xl font-bold text-gray-400">LAGOS TECH</h3>
+             <h3 className="text-xl font-bold text-gray-400">SME GROWTH</h3>
+          </div>
+        </div>
+      </div>
 
-// ✅ THIS IS THE MISSING PIECE (Fixes the 404 Error)
-app.get('/api/posts/:id', async (req, res) => {
-    const { data, error } = await supabase.from('posts').select('*').eq('id', req.params.id).single();
-    if (error) return res.status(404).json({ error: "Post not found" });
-    res.json(data);
-});
+    </div>
+  );
+};
 
-app.post('/api/posts', upload.single('media'), async (req, res) => {
-    try {
-        let mediaUrl = null;
-        if (req.file) {
-            const result = await uploadToSupabase(req.file);
-            mediaUrl = result.original;
-        }
-        const newPost = {
-            title: req.body.title,
-            excerpt: req.body.excerpt,
-            category: req.body.category || "News",
-            media_type: req.file?.mimetype.startsWith('video') ? 'video' : 'image',
-            media_url: mediaUrl
-        };
-        const { data, error } = await supabase.from('posts').insert([newPost]).select();
-        if (error) throw error;
-        res.json(data[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.delete('/api/posts/:id', async (req, res) => {
-    const { error } = await supabase.from('posts').delete().eq('id', req.params.id);
-    if (error) return res.status(500).json({ error: error.message });
-    res.json({ message: "Deleted successfully" });
-});
-
-// --- SLIDER ROUTES ---
-app.get('/api/slides', async (req, res) => {
-    const { data, error } = await supabase.from('slides').select('*').order('created_at', { ascending: true });
-    if (error) return res.json([]);
-    res.json(data);
-});
-
-app.post('/api/slides', upload.single('image'), async (req, res) => {
-    try {
-        let imageUrl = null;
-        if (req.file) {
-            const result = await uploadToSupabase(req.file);
-            imageUrl = result.original;
-        }
-        // Force 'hero' section so it appears on the Home Page slider
-        const newSlide = {
-            section: req.body.section || 'hero', 
-            type: 'image',
-            image_url: imageUrl
-        };
-        const { data, error } = await supabase.from('slides').insert([newSlide]).select();
-        if (error) throw error;
-        res.json(data[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.delete('/api/slides/:id', async (req, res) => {
-    const { error } = await supabase.from('slides').delete().eq('id', req.params.id);
-    if (error) return res.status(500).json({ error: error.message });
-    res.json({ message: "Deleted successfully" });
-});
-
-// --- SERVICES ROUTES (For Manage Prices) ---
-app.get('/api/services', async (req, res) => {
-    const { data, error } = await supabase.from('services').select('*').order('id', { ascending: true });
-    if (error) return res.json([]);
-    res.json(data);
-});
-
-app.put('/api/services/:id', async (req, res) => {
-    const { error } = await supabase.from('services').update(req.body).eq('id', req.params.id);
-    if (error) return res.status(500).json({ error: error.message });
-    res.json({ message: "Updated successfully" });
-});
-
-if (require.main === module) {
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-}
-module.exports = app;
+export default Home;
