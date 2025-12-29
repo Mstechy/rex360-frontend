@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
+import logo from '/logo.png';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -11,10 +12,7 @@ const Navbar = () => {
         
         {/* LOGO */}
         <Link to="/" className="text-2xl font-bold text-gray-900 flex items-center tracking-tight">
-          <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center text-white mr-2 shadow-sm">
-            R
-          </div>
-          <span>REX<span className="text-green-600">360</span></span>
+          <img src={logo} alt="REX360 Logo" className="h-10 w-auto mr-2" />
         </Link>
 
         {/* DESKTOP MENU (NO ADMIN LINK) */}
