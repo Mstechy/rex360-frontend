@@ -17,7 +17,7 @@ const Navbar = () => {
           <span>REX<span className="text-green-600">360</span></span>
         </Link>
 
-        {/* DESKTOP MENU - No Admin/Lock Icon */}
+        {/* DESKTOP MENU (NO ADMIN LINK) */}
         <div className="hidden md:flex items-center gap-8">
           <Link to="/" className="text-gray-600 hover:text-green-600 font-medium transition-colors text-sm uppercase tracking-wide">
             Home
@@ -36,13 +36,13 @@ const Navbar = () => {
           </Link>
         </div>
 
-        {/* MOBILE MENU BUTTON */}
+        {/* MOBILE MENU ICON */}
         <button onClick={() => setIsOpen(!isOpen)} className="md:hidden text-gray-700 p-2">
           {isOpen ? <X size={28} /> : <Menu size={28} />}
         </button>
       </div>
 
-      {/* MOBILE DROPDOWN */}
+      {/* MOBILE DROPDOWN (NO ADMIN LINK) */}
       {isOpen && (
         <div className="md:hidden bg-white border-t border-gray-100 absolute w-full left-0 shadow-xl">
           <div className="flex flex-col p-6 space-y-4">
@@ -55,8 +55,11 @@ const Navbar = () => {
             <Link to="/blog" onClick={() => setIsOpen(false)} className="text-gray-600 font-medium hover:text-green-600 text-lg">
               News
             </Link>
-            <Link to="/services" onClick={() => setIsOpen(false)} className="bg-green-600 text-white text-center py-3 rounded-xl font-bold mt-4 shadow-md">
-              Get Started
+            
+            <Link to="/services" onClick={() => setIsOpen(false)}>
+              <button className="w-full bg-green-600 text-white py-3 rounded-xl font-bold mt-4 shadow-md">
+                Get Started
+              </button>
             </Link>
           </div>
         </div>
