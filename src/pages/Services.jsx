@@ -7,9 +7,9 @@ import {
 } from 'lucide-react';
 import TextareaAutosize from 'react-textarea-autosize';
 
-const API_URL = "http://localhost:5000/api";
+// ✅ FIX 1: Use Environment Variable for API URL
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-// --- 1. FULL LIST OF SERVICES & QUESTIONS ---
 const SERVICE_TEMPLATES = [
   {
     id: 'biz-name', 
@@ -18,19 +18,19 @@ const SERVICE_TEMPLATES = [
     Icon: Briefcase, colorClass: "text-blue-600 bg-blue-50",
     desc: "Sole Proprietorship / Venture.",
     fields: [
-      { label: "Surname", type: "text", width: "half" },
-      { label: "First Name", type: "text", width: "half" },
-      { label: "Other Names", type: "text", width: "half" },
-      { label: "Date of Birth", type: "date", width: "half" },
-      { label: "Gender", type: "select", options: ["Male", "Female"], width: "half" },
-      { label: "Phone Number", type: "tel", width: "half" },
-      { label: "Email Address", type: "email", width: "full" },
-      { label: "NIN Number", type: "text", width: "full" },
-      { label: "Residential Address", type: "textarea", width: "full" },
-      { label: "Business Address", type: "textarea", width: "full" },
-      { label: "Nature of Business", type: "textarea", width: "full" },
-      { label: "Proposed Name 1", type: "text", width: "full" },
-      { label: "Proposed Name 2", type: "text", width: "full" }
+      { key: "surname", label: "Surname", type: "text", width: "half" },
+      { key: "firstname", label: "First Name", type: "text", width: "half" },
+      { key: "othernames", label: "Other Names", type: "text", width: "half" },
+      { key: "dob", label: "Date of Birth", type: "date", width: "half" },
+      { key: "gender", label: "Gender", type: "select", options: ["Male", "Female"], width: "half" },
+      { key: "phone", label: "Phone Number", type: "tel", width: "half" },
+      { key: "email", label: "Email Address", type: "email", width: "full" },
+      { key: "nin", label: "NIN Number", type: "text", width: "full" },
+      { key: "res_address", label: "Residential Address", type: "textarea", width: "full" },
+      { key: "biz_address", label: "Business Address", type: "textarea", width: "full" },
+      { key: "nature_biz", label: "Nature of Business", type: "textarea", width: "full" },
+      { key: "prop_name1", label: "Proposed Name 1", type: "text", width: "full" },
+      { key: "prop_name2", label: "Proposed Name 2", type: "text", width: "full" }
     ]
   },
   {
@@ -40,17 +40,17 @@ const SERVICE_TEMPLATES = [
     Icon: Users, colorClass: "text-green-600 bg-green-50",
     desc: "Limited Liability Company (LLC).",
     fields: [
-      { label: "Director Surname", type: "text", width: "half" },
-      { label: "Director First Name", type: "text", width: "half" },
-      { label: "Director Phone", type: "tel", width: "half" },
-      { label: "Director Email", type: "email", width: "half" },
-      { label: "Director Address", type: "textarea", width: "full" },
-      { label: "Company Address", type: "textarea", width: "full" },
-      { label: "Proposed Name 1", type: "text", width: "full" },
-      { label: "Proposed Name 2", type: "text", width: "full" },
-      { label: "Object of Memorandum", type: "textarea", width: "full" },
-      { label: "Witness Name", type: "text", width: "half" },
-      { label: "Witness Phone", type: "tel", width: "half" }
+      { key: "dir_surname", label: "Director Surname", type: "text", width: "half" },
+      { key: "dir_firstname", label: "Director First Name", type: "text", width: "half" },
+      { key: "dir_phone", label: "Director Phone", type: "tel", width: "half" },
+      { key: "dir_email", label: "Director Email", type: "email", width: "half" },
+      { key: "dir_address", label: "Director Address", type: "textarea", width: "full" },
+      { key: "comp_address", label: "Company Address", type: "textarea", width: "full" },
+      { key: "prop_name1", label: "Proposed Name 1", type: "text", width: "full" },
+      { key: "prop_name2", label: "Proposed Name 2", type: "text", width: "full" },
+      { key: "obj_memo", label: "Object of Memorandum", type: "textarea", width: "full" },
+      { key: "wit_name", label: "Witness Name", type: "text", width: "half" },
+      { key: "wit_phone", label: "Witness Phone", type: "tel", width: "half" }
     ]
   },
   {
@@ -60,16 +60,16 @@ const SERVICE_TEMPLATES = [
     Icon: Globe, colorClass: "text-purple-600 bg-purple-50",
     desc: "Incorporated Trustees.", 
     fields: [
-      { label: "Chairman Full Name", type: "text", width: "full" },
-      { label: "Chairman Phone", type: "tel", width: "half" },
-      { label: "Chairman Email", type: "email", width: "half" },
-      { label: "Secretary Full Name", type: "text", width: "full" },
-      { label: "Trustee 1 Name", type: "text", width: "full" },
-      { label: "Trustee 2 Name", type: "text", width: "full" },
-      { label: "NGO Address", type: "textarea", width: "full" },
-      { label: "Aims & Objectives (List 3)", type: "textarea", width: "full" },
-      { label: "Proposed NGO Name 1", type: "text", width: "full" },
-      { label: "Proposed NGO Name 2", type: "text", width: "full" }
+      { key: "chair_name", label: "Chairman Full Name", type: "text", width: "full" },
+      { key: "chair_phone", label: "Chairman Phone", type: "tel", width: "half" },
+      { key: "chair_email", label: "Chairman Email", type: "email", width: "half" },
+      { key: "sec_name", label: "Secretary Full Name", type: "text", width: "full" },
+      { key: "trustee1", label: "Trustee 1 Name", type: "text", width: "full" },
+      { key: "trustee2", label: "Trustee 2 Name", type: "text", width: "full" },
+      { key: "ngo_address", label: "NGO Address", type: "textarea", width: "full" },
+      { key: "aims", label: "Aims & Objectives (List 3)", type: "textarea", width: "full" },
+      { key: "prop_name1", label: "Proposed NGO Name 1", type: "text", width: "full" },
+      { key: "prop_name2", label: "Proposed NGO Name 2", type: "text", width: "full" }
     ]
   },
   {
@@ -79,14 +79,14 @@ const SERVICE_TEMPLATES = [
     Icon: Users, colorClass: "text-indigo-600 bg-indigo-50",
     desc: "Business Name with 2+ Partners.",
     fields: [
-      { label: "Partner 1 Full Name", type: "text", width: "full" },
-      { label: "Partner 1 Email", type: "email", width: "half" },
-      { label: "Partner 1 Phone", type: "tel", width: "half" },
-      { label: "Partner 2 Full Name", type: "text", width: "full" },
-      { label: "Business Address", type: "textarea", width: "full" },
-      { label: "Nature of Business", type: "textarea", width: "full" },
-      { label: "Proposed Name 1", type: "text", width: "full" },
-      { label: "Proposed Name 2", type: "text", width: "full" }
+      { key: "part1_name", label: "Partner 1 Full Name", type: "text", width: "full" },
+      { key: "part1_email", label: "Partner 1 Email", type: "email", width: "half" },
+      { key: "part1_phone", label: "Partner 1 Phone", type: "tel", width: "half" },
+      { key: "part2_name", label: "Partner 2 Full Name", type: "text", width: "full" },
+      { key: "biz_address", label: "Business Address", type: "textarea", width: "full" },
+      { key: "nature_biz", label: "Nature of Business", type: "textarea", width: "full" },
+      { key: "prop_name1", label: "Proposed Name 1", type: "text", width: "full" },
+      { key: "prop_name2", label: "Proposed Name 2", type: "text", width: "full" }
     ]
   },
   {
@@ -96,12 +96,12 @@ const SERVICE_TEMPLATES = [
     Icon: Stamp, colorClass: "text-orange-600 bg-orange-50",
     desc: "Protect your Brand.", 
     fields: [
-      { label: "Applicant Full Name", type: "text", width: "full" },
-      { label: "Phone Number", type: "tel", width: "half" },
-      { label: "Email Address", type: "email", width: "half" },
-      { label: "Applicant Address", type: "textarea", width: "full" },
-      { label: "Proposed Trademark Name", type: "text", width: "full" },
-      { label: "Class of Business", type: "text", width: "full" }
+      { key: "app_name", label: "Applicant Full Name", type: "text", width: "full" },
+      { key: "phone", label: "Phone Number", type: "tel", width: "half" },
+      { key: "email", label: "Email Address", type: "email", width: "half" },
+      { key: "app_address", label: "Applicant Address", type: "textarea", width: "full" },
+      { key: "trademark_name", label: "Proposed Trademark Name", type: "text", width: "full" },
+      { key: "class_biz", label: "Class of Business", type: "text", width: "full" }
     ]
   },
   {
@@ -111,11 +111,11 @@ const SERVICE_TEMPLATES = [
     Icon: FileText, colorClass: "text-teal-600 bg-teal-50",
     desc: "NEPC Exporter's Certificate.",
     fields: [
-      { label: "Registered Company Name", type: "text", width: "full" },
-      { label: "RC Number", type: "text", width: "half" },
-      { label: "Tax ID (TIN)", type: "text", width: "half" },
-      { label: "Company Email", type: "email", width: "full" },
-      { label: "Corporate Bank Account Number", type: "text", width: "full" }
+      { key: "reg_name", label: "Registered Company Name", type: "text", width: "full" },
+      { key: "rc_num", label: "RC Number", type: "text", width: "half" },
+      { key: "tin", label: "Tax ID (TIN)", type: "text", width: "half" },
+      { key: "email", label: "Company Email", type: "email", width: "full" },
+      { key: "bank_acc", label: "Corporate Bank Account Number", type: "text", width: "full" }
     ]
   },
   {
@@ -125,11 +125,11 @@ const SERVICE_TEMPLATES = [
     Icon: Lock, colorClass: "text-red-600 bg-red-50",
     desc: "Intellectual Property Protection.",
     fields: [
-      { label: "Author Full Name", type: "text", width: "full" },
-      { label: "Author Address", type: "textarea", width: "full" },
-      { label: "Work Title", type: "text", width: "full" },
-      { label: "Category of Work", type: "text", width: "full" },
-      { label: "Email Address", type: "email", width: "full" }
+      { key: "author_name", label: "Author Full Name", type: "text", width: "full" },
+      { key: "author_address", label: "Author Address", type: "textarea", width: "full" },
+      { key: "work_title", label: "Work Title", type: "text", width: "full" },
+      { key: "work_cat", label: "Category of Work", type: "text", width: "full" },
+      { key: "email", label: "Email Address", type: "email", width: "full" }
     ]
   }
 ];
@@ -140,29 +140,40 @@ export default function Services() {
   const [formData, setFormData] = useState({});
   const navigate = useNavigate(); 
   
-  // Fetch Real Prices
+  // ✅ FIX 2: Better Fetch Logic
   useEffect(() => {
-    fetch(`${API_URL}/services`)
-      .then(res => res.json())
-      .then(dbPrices => {
+    const fetchPrices = async () => {
+      try {
+        const res = await fetch(`${API_URL}/services`);
+        const dbPrices = await res.json();
+        
         if (dbPrices.length > 0) {
             const updated = SERVICE_TEMPLATES.map(t => {
-                const dbItem = dbPrices.find(p => p.id === t.id);
+                const dbItem = dbPrices.find(p => p.id === t.id); // Matches 'services' table in DB
                 return dbItem ? { ...t, price: dbItem.price } : t;
             });
             setServicesList(updated);
-            setActiveService(updated[0]);
+            
+            // ✅ FIX 3: Update Active Service too if it changed
+            setActiveService(prev => {
+                const updatedActive = updated.find(u => u.id === prev.id);
+                return updatedActive || prev;
+            });
         }
-      })
-      .catch(err => console.log(err));
+      } catch (err) {
+        console.log("Using default prices (Offline or Error)");
+      }
+    };
+    fetchPrices();
   }, []);
 
-  const handleInputChange = (label, value) => {
-    setFormData(prev => ({ ...prev, [label]: value }));
+  const handleInputChange = (key, value) => {
+    setFormData(prev => ({ ...prev, [key]: value }));
   };
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
+    // ✅ FIX 4: Robust Email Check
     const hasEmail = Object.keys(formData).some(k => k.toLowerCase().includes('email'));
     if(!hasEmail) { alert("Please enter an email address so we can contact you."); return; }
     
@@ -174,13 +185,13 @@ export default function Services() {
   return (
     <div className="bg-slate-50 min-h-screen font-sans">
       
-      {/* --- HEADER --- */}
+      {/* HEADER */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
             <h1 className="text-2xl font-serif font-bold text-slate-900 flex items-center gap-2">
                 <Sparkles size={20} className="text-green-600"/> Registration Portal
             </h1>
-            <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+            <div className="hidden md:flex items-center gap-2 text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
                 <span className="font-bold text-slate-800">Step 1:</span> Choose Service
                 <ChevronRight size={14}/>
                 <span className="font-bold text-slate-800">Step 2:</span> Fill Details
@@ -191,7 +202,7 @@ export default function Services() {
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
         <div className="grid lg:grid-cols-12 gap-8 items-start">
             
-            {/* --- LEFT SIDEBAR (Service Selector) --- */}
+            {/* SIDEBAR */}
             <div className="lg:col-span-4 lg:sticky lg:top-28">
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                     <div className="p-4 border-b border-gray-100 bg-gray-50/50">
@@ -228,17 +239,13 @@ export default function Services() {
                                 <div className={`text-xs font-bold ${activeService.id === service.id ? 'text-green-400' : 'text-slate-900 group-hover:text-green-600'}`}>
                                     {service.price}
                                 </div>
-                                
-                                {activeService.id === service.id && (
-                                    <div className="absolute inset-y-0 left-0 w-1 bg-green-500 rounded-l-xl"></div>
-                                )}
                             </button>
                         ))}
                     </div>
                 </div>
             </div>
 
-            {/* --- RIGHT PANEL (Dynamic Form) --- */}
+            {/* FORM PANEL */}
             <div className="lg:col-span-8">
                 <AnimatePresence mode="wait">
                     <motion.div 
@@ -268,7 +275,7 @@ export default function Services() {
                             </div>
                         </div>
 
-                        {/* The Form */}
+                        {/* Form Fields */}
                         <form onSubmit={handleFormSubmit} className="p-8">
                             <div className="grid md:grid-cols-2 gap-x-6 gap-y-6">
                                 {activeService.fields.map((field, i) => (
@@ -282,13 +289,14 @@ export default function Services() {
                                                 minRows={3} required 
                                                 placeholder="Type here..."
                                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm text-slate-800 resize-none placeholder:text-gray-400"
-                                                onChange={(e) => handleInputChange(field.label, e.target.value)} 
+                                                // ✅ FIX 5: Use 'field.key' not 'field.label'
+                                                onChange={(e) => handleInputChange(field.key, e.target.value)} 
                                             />
                                         ) : field.type === 'select' ? (
                                             <div className="relative">
                                                 <select 
                                                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm text-slate-800 appearance-none"
-                                                    onChange={(e) => handleInputChange(field.label, e.target.value)}
+                                                    onChange={(e) => handleInputChange(field.key, e.target.value)}
                                                 >
                                                     <option value="">Select an option...</option>
                                                     {field.options && field.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -300,7 +308,7 @@ export default function Services() {
                                                 required type={field.type} 
                                                 placeholder="Enter details..."
                                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm text-slate-800 placeholder:text-gray-400"
-                                                onChange={(e) => handleInputChange(field.label, e.target.value)} 
+                                                onChange={(e) => handleInputChange(field.key, e.target.value)} 
                                             />
                                         )}
                                     </div>
