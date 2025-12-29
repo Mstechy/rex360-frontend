@@ -16,6 +16,7 @@ export default function Login() {
     setError('');
 
     try {
+      // 1. Authenticate with Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -23,11 +24,17 @@ export default function Login() {
 
       if (error) throw error;
 
-      // Security Check: Is this the Admin?
+      // 2. PRO METHOD: Save the session token to localStorage
+      // This "unlocks" the ProtectedRoute in App.jsx
+      if (data?.session) {
+        localStorage.setItem('token', data.session.access_token);
+      }
+
+      // 3. Security Routing: Check if the user is the Admin
       if (email === 'rex360solutions@gmail.com') {
-        navigate('/admin'); // Admin goes to Dashboard
+        navigate('/admin'); // Sends you to the secure dashboard
       } else {
-        navigate('/'); // Regular users go Home
+        navigate('/'); // Sends regular clients to the homepage
       }
 
     } catch (err) {
@@ -40,21 +47,30 @@ export default function Login() {
   return (
     <div className="min-h-screen pt-32 px-4 flex justify-center items-center bg-gray-50">
       <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 w-full max-w-md">
-        <h2 className="text-3xl font-bold text-blue-950 mb-2 text-center">Welcome Back</h2>
-        <p className="text-gray-500 text-center mb-8">Login to access your account</p>
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-blue-950 mb-2">Welcome Back</h2>
+          <p className="text-gray-500">Login to access your REX360 account</p>
+        </div>
 
-        {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4">{error}</div>}
+        {/* Error Alert */}
+        {error && (
+          <div className="bg-red-50 text-red-600 p-4 rounded-lg text-sm mb-6 border border-red-100">
+            {error}
+          </div>
+        )}
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        {/* Login Form */}
+        <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">Email Address</label>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Email Address</label>
             <div className="relative">
-              <Mail className="absolute left-3 top-3 text-gray-400" size={18} />
+              <Mail className="absolute left-3 top-3.5 text-gray-400" size={18} />
               <input 
                 type="email" 
                 required 
-                className="w-full pl-10 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="name@example.com"
+                className="w-full pl-10 p-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                placeholder="rex360solutions@gmail.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
               />
@@ -62,13 +78,13 @@ export default function Login() {
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1">Password</label>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Password</label>
             <div className="relative">
-              <Lock className="absolute left-3 top-3 text-gray-400" size={18} />
+              <Lock className="absolute left-3 top-3.5 text-gray-400" size={18} />
               <input 
                 type="password" 
                 required 
-                className="w-full pl-10 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full pl-10 p-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                 placeholder="••••••••"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
@@ -77,17 +93,39 @@ export default function Login() {
           </div>
 
           <div className="flex justify-end">
-            <Link to="/forgot-password" class="text-sm text-blue-600 font-bold hover:underline">Forgot Password?</Link>
+            <Link 
+              to="/forgot-password" 
+              className="text-sm text-blue-600 font-bold hover:text-blue-800 transition"
+            >
+              Forgot Password?
+            </Link>
           </div>
 
-          <button disabled={loading} className="w-full bg-blue-900 text-white py-3 rounded-xl font-bold hover:bg-blue-800 transition flex justify-center">
-            {loading ? <Loader2 className="animate-spin"/> : "Login"}
+          <button 
+            type="submit"
+            disabled={loading} 
+            className="w-full bg-blue-950 text-white py-4 rounded-xl font-bold hover:bg-blue-900 transition-all shadow-lg flex justify-center items-center gap-2 disabled:opacity-70"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="animate-spin" size={20} />
+                <span>Verifying...</span>
+              </>
+            ) : (
+              "Login to Dashboard"
+            )}
           </button>
         </form>
 
-        <p className="text-center mt-6 text-gray-500 text-sm">
-          Don't have an account? <Link to="/signup" className="text-blue-600 font-bold hover:underline">Sign Up</Link>
-        </p>
+        {/* Footer Links */}
+        <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+          <p className="text-gray-500 text-sm">
+            Don't have an account?{' '}
+            <Link to="/signup" className="text-blue-600 font-bold hover:underline">
+              Create Account
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
