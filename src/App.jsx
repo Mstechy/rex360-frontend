@@ -1,9 +1,6 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 
-// Assets
-import logo from '/logo.png';
-
 // Components
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
