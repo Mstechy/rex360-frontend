@@ -16,8 +16,12 @@ export default function ForgotPassword() {
     setMessage('');
 
     try {
+      const redirectUrl = import.meta.env.PROD 
+        ? 'https://rex360-frontend.vercel.app/update-password'
+        : 'http://localhost:5173/update-password';
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'http://localhost:5173/update-password',
+        redirectTo: redirectUrl,
       });
       if (error) throw error;
       setMessage("Password reset link sent! Check your email.");

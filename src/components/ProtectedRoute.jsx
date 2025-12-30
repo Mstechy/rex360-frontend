@@ -1,99 +1,33 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-
-const ADMIN_PASSWORD = 'Rex360Admin!@#2024'; // Change this to a secure password
+import { Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { supabase } from '../supabase'; // This connects to your supabase.js
 
 const ProtectedRoute = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(!isAuthenticated);
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const handlePasswordSubmit = (e) => {
-    e.preventDefault();
-    
-    if (password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true);
-      setShowPasswordModal(false);
-      setError('');
-      setPassword('');
-    } else {
-      setError('Invalid password. Please try again.');
-      setPassword('');
-    }
-  };
+  useEffect(() => {
+    // Check for an active session immediately 
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
+      setLoading(false);
+    };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setShowPasswordModal(true);
-    navigate('/');
-  };
+    getSession();
 
-  if (!isAuthenticated) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-            Admin Access Required
-          </h2>
-          
-          {showPasswordModal && (
-            <form onSubmit={handlePasswordSubmit}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Enter Admin Password
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-600"
-                  autoFocus
-                />
-              </div>
+    // Listen for login/logout events (The "Pro" method)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
 
-              {error && (
-                <p className="text-red-600 text-sm mb-4 text-center font-medium">
-                  {error}
-                </p>
-              )}
+    return () => subscription.unsubscribe();
+  }, []);
 
-              <button
-                type="submit"
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
-              >
-                Unlock
-              </button>
+  if (loading) return <div className="p-20 text-center font-bold">Verifying Security...</div>;
 
-              <button
-                type="button"
-                onClick={() => navigate('/')}
-                className="w-full mt-2 bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg transition-colors"
-              >
-                Go Back
-              </button>
-            </form>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <div className="flex justify-end mb-4">
-        <button
-          onClick={handleLogout}
-          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-        >
-          Logout Admin
-        </button>
-      </div>
-      {children}
-    </div>
-  );
+  // If no user is logged in, they are blocked from seeing 'children' (Admin)
+  return session ? children : <Navigate to="/login" replace />;
 };
 
 export default ProtectedRoute;

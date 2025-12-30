@@ -15,7 +15,8 @@ import PostDetails from './pages/PostDetails';
 import Admin from './pages/Admin';
 import Login from './pages/Login'; 
 import Signup from './pages/Signup'; 
-import ForgotPassword from './pages/ForgotPassword'; 
+import ForgotPassword from './pages/ForgotPassword';
+import UpdatePassword from './pages/UpdatePassword';
 import Checkout from './pages/Checkout'; 
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/update-password" element={<UpdatePassword />} />
           <Route path="/checkout" element={<Checkout />} />
           
           {/* SECURE ADMIN PAGE - ONLY accessible with a password */}
