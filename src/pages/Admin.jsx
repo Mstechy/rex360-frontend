@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../supabase'; // Import the client you shared
+import { supabase } from '../supabase'; 
 import { FaTrash, FaSignOutAlt, FaMoneyBillWave, FaImages, FaNewspaper, FaUpload } from 'react-icons/fa';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://rex360backend.vercel.app/api';
-const ADMIN_EMAIL = 'rex360solutions@gmail.com'; // Only admin email
+const ADMIN_EMAIL = 'rex360solutions@gmail.com'; 
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -29,14 +29,12 @@ const Admin = () => {
     const verifyAdminAccess = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-        
         if (error || !session) {
           setIsVerifying(false);
           setIsAuthorized(false);
           setTimeout(() => navigate('/login', { replace: true }), 100);
           return;
         }
-
         const userEmail = session.user?.email;
         if (userEmail === ADMIN_EMAIL) {
           setIsAuthorized(true);
@@ -52,7 +50,6 @@ const Admin = () => {
         setTimeout(() => navigate('/login', { replace: true }), 100);
       }
     };
-
     verifyAdminAccess();
   }, [navigate]);
 
@@ -113,11 +110,9 @@ const Admin = () => {
 
   const notify = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
 
-  // STRICT UPDATE: Modified to handle the "Reduced Price" logic
   const saveServicePrice = async (id, newPrice, oldPrice) => {
     try {
       const config = await getAuthHeaders(); 
-      // Sends both the current price and the price to be cancelled
       await axios.put(`${API_URL}/services/${id}`, { 
         price: newPrice, 
         original_price: oldPrice 
@@ -254,13 +249,13 @@ const Admin = () => {
           </div>
         )}
 
-        {/* Content Tab stays exactly the same */}
         {activeTab === 'content' && (
           <div className="space-y-8">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
               <h2 className="text-lg font-bold mb-6 flex items-center gap-2"><FaUpload/> Upload Manager</h2>
               <div className="grid md:grid-cols-12 gap-4 items-end">
                 <div className="md:col-span-4">
+                  <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Image Location</label>
                   <select className="w-full border p-3 rounded-lg bg-gray-50" value={slideSection} onChange={(e) => setSlideSection(e.target.value)}>
                     <option value="hero">Home Slider</option>
                     <option value="certificate">Certificate Image</option>
@@ -271,10 +266,30 @@ const Admin = () => {
                 <div className="md:col-span-2"><button onClick={uploadImage} disabled={loading} className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg">{loading ? '...' : 'Upload'}</button></div>
               </div>
             </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <h2 className="text-lg font-bold mb-6">Currently Active Website Images</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {slides.map((slide) => (
+                  <div key={slide.id} className="relative group border rounded-xl overflow-hidden shadow-sm bg-gray-50">
+                    <img src={slide.image_url} alt="Website Content" className="w-full h-32 object-cover" />
+                    <div className="p-2 flex justify-between items-center bg-white">
+                      <span className="text-[10px] font-bold uppercase text-blue-600">{slide.section}</span>
+                      <button 
+                        onClick={() => deleteItem('slides', slide.id)} 
+                        className="text-red-500 hover:text-red-700 transition-colors"
+                      >
+                        <FaTrash size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {slides.length === 0 && !loading && <p className="text-gray-400 text-sm">No images found.</p>}
+            </div>
           </div>
         )}
 
-        {/* Blog Tab stays exactly the same */}
         {activeTab === 'blog' && (
           <div className="space-y-8">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
