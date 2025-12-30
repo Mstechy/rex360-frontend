@@ -6,6 +6,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop'; 
 import ProtectedRoute from './components/ProtectedRoute';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Pages
 import Home from './pages/Home';
@@ -27,7 +28,8 @@ function App() {
       <Navbar />
       
       <main className="flex-grow">
-        <Routes>
+        <ErrorBoundary>
+          <Routes>
           {/* PUBLIC PAGES - Accessible to everyone */}
           <Route path="/" element={<Home />} />
           <Route path="/services" element={<Services />} />
@@ -48,9 +50,10 @@ function App() {
               </ProtectedRoute>
             } 
           />
-        </Routes>
+          </Route>
+          </Routes>
+        </ErrorBoundary>
       </main>
-      
       <Footer />
     </div>
   );
