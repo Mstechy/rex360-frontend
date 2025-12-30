@@ -23,6 +23,7 @@ const Admin = () => {
   const [slideSection, setSlideSection] = useState('hero'); 
   const [postForm, setPostForm] = useState({ title: '', excerpt: '', category: 'Business', media: null });
   const [editingService, setEditingService] = useState(null);
+  const [apiError, setApiError] = useState(null);
 
   // 🔒 SECURITY: Triple-layer verification - prevent any rendering until verified
   useEffect(() => {
@@ -101,18 +102,23 @@ const Admin = () => {
   // Hoisted function so useEffect can call it safely before declaration
   async function fetchData() {
     setLoading(true);
+    setApiError(null);
     try {
       if (activeTab === 'services') {
         const res = await axios.get(`${API_URL}/services`);
-        setServices(res.data);
+        setServices(res.data || []);
       } else if (activeTab === 'content') {
         const res = await axios.get(`${API_URL}/slides`);
-        setSlides(res.data);
+        setSlides(res.data || []);
       } else if (activeTab === 'blog') {
         const res = await axios.get(`${API_URL}/posts`);
-        setPosts(res.data);
+        setPosts(res.data || []);
       }
-    } catch (error) { console.error(error); }
+    } catch (error) {
+      const msg = error.response?.data?.message || error.message || 'Failed to load data';
+      console.error(`API Error (${activeTab}):`, msg);
+      setApiError(msg);
+    }
     setLoading(false);
   }
 
@@ -211,6 +217,9 @@ const Admin = () => {
         {activeTab === 'services' && (
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-lg font-bold mb-6">Service Price List</h2>
+            {apiError && <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm">{apiError}</div>}
+            {loading && <p className="text-gray-500">Loading services...</p>}
+            {!loading && services.length === 0 && <p className="text-gray-500">No services found. Connect backend API.</p>}
             <div className="grid md:grid-cols-2 gap-4">
               {services.map((s) => (
                 <div key={s.id} className="border p-4 rounded-xl flex justify-between items-center bg-gray-50">
