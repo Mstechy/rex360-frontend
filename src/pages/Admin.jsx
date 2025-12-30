@@ -86,7 +86,9 @@ const Admin = () => {
     );
   }
 
-  useEffect(() => { fetchData(); }, [activeTab]);
+  useEffect(() => { 
+    if (isAuthorized) fetchData(); 
+  }, [activeTab, isAuthorized]);
 
   // NEW: Helper function to get the security token for the backend
   const getAuthHeaders = async () => {
