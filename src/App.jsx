@@ -50,7 +50,6 @@ function App() {
               </ProtectedRoute>
             } 
           />
-          </Route>
           </Routes>
         </ErrorBoundary>
       </main>
