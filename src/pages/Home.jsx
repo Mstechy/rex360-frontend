@@ -16,7 +16,6 @@ const Home = () => {
   const [certImage, setCertImage] = useState(null);
   const [agentImage, setAgentImage] = useState(null);
 
-  // --- 1. COLORFUL ICONS ---
   const getServiceIcon = (id) => {
     switch(id) {
       case 'biz-name': return <Briefcase className="text-blue-600" />;
@@ -25,7 +24,7 @@ const Home = () => {
       case 'trademark': return <Stamp className="text-orange-500" />;
       case 'copyright': return <Scale className="text-rose-600" />;
       case 'export': return <Send className="text-cyan-600" />;
-      default: return <Award className="text-amber-500" />; // Gold for others
+      default: return <Award className="text-amber-500" />;
     }
   };
 
@@ -50,7 +49,6 @@ const Home = () => {
     fetchData();
   }, []);
 
-  // --- SLIDER TIMER ---
   useEffect(() => {
     if (slides.length <= 1) return;
     const interval = setInterval(() => {
@@ -62,9 +60,6 @@ const Home = () => {
   return (
     <div className="font-sans text-gray-900 bg-white overflow-x-hidden selection:bg-green-100 selection:text-green-900">
       
-      {/* =========================================
-          1. HERO SECTION (KEN BURNS EFFECT)
-         ========================================= */}
       <div className="relative w-full h-[600px] md:h-[850px] bg-slate-900 overflow-hidden">
         <AnimatePresence mode='wait'>
           {slides.map((slide, index) => (
@@ -72,7 +67,7 @@ const Home = () => {
               <motion.div
                 key={index}
                 initial={{ scale: 1.2, opacity: 0 }} 
-                animate={{ scale: 1, opacity: 1 }} // Slow Zoom Out
+                animate={{ scale: 1, opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 2, ease: "easeOut" }}
                 className="absolute inset-0"
@@ -82,21 +77,18 @@ const Home = () => {
                   alt="Hero" 
                   className="w-full h-full object-cover object-center" 
                 />
-                {/* Gradient Overlay: Darker at bottom for text readability */}
                 <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-slate-900/90"></div>
               </motion.div>
             )
           ))}
         </AnimatePresence>
 
-        {/* Floating Particles (Alive Background) */}
         <div className="absolute inset-0 pointer-events-none">
            <motion.div animate={{ y: [0, -30, 0], opacity: [0.3, 0.7, 0.3] }} transition={{ repeat: Infinity, duration: 6 }} className="absolute top-1/4 left-1/4 w-1 h-1 bg-green-400 rounded-full blur-[2px]" />
            <motion.div animate={{ y: [0, 40, 0], opacity: [0.2, 0.6, 0.2] }} transition={{ repeat: Infinity, duration: 8 }} className="absolute bottom-1/3 right-1/4 w-2 h-2 bg-blue-400 rounded-full blur-[3px]" />
            <motion.div animate={{ y: [0, -20, 0], opacity: [0.1, 0.5, 0.1] }} transition={{ repeat: Infinity, duration: 10 }} className="absolute top-1/2 right-10 w-1.5 h-1.5 bg-yellow-400 rounded-full blur-[2px]" />
         </div>
 
-        {/* Text Content */}
         <div className="absolute inset-0 flex flex-col justify-center items-center text-center px-4 z-10">
           <motion.div 
             initial={{ opacity: 0, y: 40 }}
@@ -104,7 +96,6 @@ const Home = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="max-w-4xl"
           >
-             {/* BLINKING BADGE */}
              <motion.div 
                whileHover={{ scale: 1.05 }}
                className="inline-flex items-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 text-white px-5 py-2 rounded-full text-xs font-bold uppercase tracking-[0.2em] mb-8 shadow-2xl"
@@ -141,11 +132,7 @@ const Home = () => {
         </div>
       </div>
 
-      {/* =========================================
-          2. ACCREDITATION (SPINNING SEAL & FULL CERT)
-         ========================================= */}
       <div className="bg-[#F8FAFC] py-24 relative overflow-hidden">
-        {/* Decorative Blobs */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-green-200/20 rounded-full blur-[120px] pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-200/20 rounded-full blur-[120px] pointer-events-none"></div>
 
@@ -184,7 +171,6 @@ const Home = () => {
               ))}
             </div>
 
-            {/* Agent Badge */}
             <div className="inline-flex items-center gap-4 bg-white p-2 pr-6 rounded-full shadow-lg border border-slate-100">
                 <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-green-500 p-0.5">
                     {agentImage ? (
@@ -203,14 +189,12 @@ const Home = () => {
             </div>
           </motion.div>
 
-          {/* RIGHT: CERTIFICATE + SPINNING SEAL */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }} 
             whileInView={{ opacity: 1, scale: 1 }} 
             viewport={{ once: true }}
             className="relative"
           >
-             {/* THE SPINNING SEAL BEHIND THE CERTIFICATE */}
              <motion.div 
                animate={{ rotate: 360 }}
                transition={{ repeat: Infinity, duration: 30, ease: "linear" }}
@@ -222,7 +206,6 @@ const Home = () => {
                className="absolute -bottom-10 -left-10 w-32 h-32 border-[2px] border-dotted border-blue-300 rounded-full z-0 opacity-50 hidden md:block"
              />
 
-             {/* THE CERTIFICATE CARD */}
              <div className="bg-white p-3 rounded-3xl shadow-2xl border border-slate-100 relative z-10">
                 <div className="bg-slate-50 rounded-2xl overflow-hidden border border-slate-200 relative h-[500px] md:h-[650px] w-full flex items-center justify-center group">
                     
@@ -239,7 +222,6 @@ const Home = () => {
                         </div>
                     )}
 
-                    {/* Shimmering Badge */}
                     <div className="absolute top-6 right-6 bg-gradient-to-r from-amber-400 to-amber-600 text-white text-[10px] font-bold px-4 py-1.5 rounded-full shadow-lg flex items-center gap-2">
                         <Award size={12} className="text-white"/> VERIFIED DOCUMENT
                     </div>
@@ -250,9 +232,6 @@ const Home = () => {
         </div>
       </div>
 
-      {/* =========================================
-          3. SERVICES (COLORFUL CARDS)
-         ========================================= */}
       <div className="py-24 bg-white relative">
         <div className="container mx-auto px-6">
             <div className="text-center mb-20">
@@ -274,10 +253,7 @@ const Home = () => {
                         whileHover={{ y: -10 }}
                         className="bg-white rounded-[2rem] shadow-lg hover:shadow-2xl transition-all duration-300 p-8 border border-slate-100 flex flex-col group relative overflow-hidden"
                     >
-                        {/* Hover Gradient Background */}
                         <div className="absolute inset-0 bg-gradient-to-br from-slate-50 to-white opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                        
-                        {/* Top Accent Line */}
                         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-green-400 to-blue-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
 
                         <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-6 relative z-10 group-hover:bg-white group-hover:shadow-md transition-all">
@@ -293,7 +269,13 @@ const Home = () => {
                         <div className="flex items-center justify-between mt-auto pt-6 border-t border-slate-100 relative z-10">
                             <div>
                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">All Inclusive</p>
-                                <span className="text-slate-900 font-extrabold text-2xl">{service.price}</span>
+                                <div className="flex flex-col">
+                                    <span className="text-slate-900 font-extrabold text-2xl">{service.price}</span>
+                                    {/* Added Strikethrough Display strictly here */}
+                                    {service.original_price && (
+                                        <span className="text-gray-400 line-through text-xs font-medium -mt-1">{service.original_price}</span>
+                                    )}
+                                </div>
                             </div>
                             <Link to="/services">
                               <motion.button 
@@ -310,7 +292,6 @@ const Home = () => {
         </div>
       </div>
 
-      {/* 4. TRUST STRIP (GOLD STARS) */}
       <div className="bg-slate-900 py-16 border-t border-white/5">
         <div className="container mx-auto px-6 text-center">
           <p className="text-slate-500 text-xs font-bold uppercase tracking-[0.3em] mb-10">Trusted by Nigerian Businesses</p>
