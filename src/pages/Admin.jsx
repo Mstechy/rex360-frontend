@@ -62,6 +62,10 @@ const Admin = () => {
     verifyAdminAccess();
   }, [navigate]);
 
+  useEffect(() => { 
+    if (isAuthorized) fetchData(); 
+  }, [activeTab, isAuthorized]);
+
   // NEW: Block rendering if still verifying or not authorized
   if (isVerifying) {
     return (
@@ -86,10 +90,6 @@ const Admin = () => {
     );
   }
 
-  useEffect(() => { 
-    if (isAuthorized) fetchData(); 
-  }, [activeTab, isAuthorized]);
-
   // NEW: Helper function to get the security token for the backend
   const getAuthHeaders = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -107,14 +107,35 @@ const Admin = () => {
     setApiError(null);
     try {
       if (activeTab === 'services') {
-        const res = await axios.get(`${API_URL}/services`);
-        setServices(res.data || []);
+        try {
+          const res = await axios.get(`${API_URL}/services`);
+          setServices(res.data || []);
+        } catch (err) {
+          console.error('Services fetch error:', err);
+          setServices([]);
+          setApiError('Could not load services. Ensure backend is running.');
+        }
       } else if (activeTab === 'content') {
-        const res = await axios.get(`${API_URL}/slides`);
-        setSlides(res.data || []);
+        try {
+          const res = await axios.get(`${API_URL}/slides`);
+          setSlides(res.data || []);
+        } catch (err) {
+          console.error('Slides fetch error:', err);
+          setSlides([]);
+          setApiError('Could not load images. Ensure backend is running.');
+        }
       } else if (activeTab === 'blog') {
-        const res = await axios.get(`${API_URL}/posts`);
-        setPosts(res.data || []);
+        try {
+          const res = await axios.get(`${API_URL}/posts`);
+          console.log('Posts response:', res.data);
+          setPosts(res.data || []);
+          setApiError(null);
+        } catch (err) {
+          console.error('Posts fetch error:', err);
+          setPosts([]);
+          const errorMsg = err.response?.data?.error || err.message || 'Could not load blog posts';
+          setApiError(`Error: ${errorMsg}. Make sure the 'posts' table exists in Supabase.`);
+        }
       }
     } catch (error) {
       const msg = error.response?.data?.message || error.message || 'Failed to load data';
@@ -265,10 +286,108 @@ const Admin = () => {
         )}
 
         {activeTab === 'blog' && (
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <h2 className="text-lg font-bold mb-6">Create Blog Post</h2>
-            {apiError && <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm">{apiError}</div>}
-            <p className="text-gray-500 text-sm">Blog management coming soon...</p>
+          <div className="space-y-8">
+            {/* Create Blog Post Form */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <h2 className="text-lg font-bold mb-6 flex items-center gap-2"><FaNewspaper /> Create Blog Post</h2>
+              {apiError && <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm">{apiError}</div>}
+              
+              <form onSubmit={createPost} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Post Title</label>
+                  <input 
+                    type="text" 
+                    required 
+                    className="w-full border p-3 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="Enter blog post title"
+                    value={postForm.title}
+                    onChange={(e) => setPostForm({...postForm, title: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Post Excerpt</label>
+                  <textarea 
+                    required 
+                    className="w-full border p-3 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                    placeholder="Enter a brief summary of your post"
+                    rows="3"
+                    value={postForm.excerpt}
+                    onChange={(e) => setPostForm({...postForm, excerpt: e.target.value})}
+                  />
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
+                    <select 
+                      required 
+                      className="w-full border p-3 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"
+                      value={postForm.category}
+                      onChange={(e) => setPostForm({...postForm, category: e.target.value})}
+                    >
+                      <option value="Business">Business</option>
+                      <option value="CAC">CAC (Corporate Affairs)</option>
+                      <option value="Updates">Updates</option>
+                      <option value="News">News</option>
+                      <option value="Tips">Tips & Guides</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Featured Image</label>
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      className="w-full border p-3 rounded-lg bg-gray-50"
+                      onChange={(e) => setPostForm({...postForm, media: e.target.files[0]})}
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  type="submit"
+                  disabled={loading} 
+                  className="w-full bg-blue-950 text-white font-bold py-3 rounded-lg hover:bg-blue-900 transition disabled:opacity-70"
+                >
+                  {loading ? 'Publishing...' : 'Publish Post'}
+                </button>
+              </form>
+            </div>
+
+            {/* Blog Posts List */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <h2 className="text-lg font-bold mb-6">Published Posts</h2>
+              {apiError && <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm">{apiError}</div>}
+              {loading && <p className="text-gray-500">Loading posts...</p>}
+              {!loading && posts.length === 0 && <p className="text-gray-500">No blog posts yet. Create your first post above!</p>}
+              
+              <div className="space-y-4">
+                {posts.map((post) => (
+                  <div key={post.id} className="border p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition">
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="flex-grow">
+                        <h3 className="font-bold text-gray-800 mb-1">{post.title}</h3>
+                        <p className="text-sm text-gray-600 mb-2">{post.excerpt}</p>
+                        <div className="flex gap-3 flex-wrap">
+                          <span className="text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-semibold">{post.category}</span>
+                          <span className="text-xs text-gray-500">
+                            {new Date(post.created_at || post.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => deleteItem('posts', post.id)}
+                        className="text-red-600 hover:text-red-800 font-bold text-lg transition"
+                        title="Delete post"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>
