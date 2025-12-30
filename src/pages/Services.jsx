@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import TextareaAutosize from 'react-textarea-autosize';
 
-// ✅ FIX 1: Use Environment Variable for API URL
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const SERVICE_TEMPLATES = [
@@ -15,6 +14,7 @@ const SERVICE_TEMPLATES = [
     id: 'biz-name', 
     title: "Business Name", 
     price: "₦35,000",
+    original_price: null, // Added to template
     Icon: Briefcase, colorClass: "text-blue-600 bg-blue-50",
     desc: "Sole Proprietorship / Venture.",
     fields: [
@@ -37,6 +37,7 @@ const SERVICE_TEMPLATES = [
     id: 'company', 
     title: "Company (Ltd)", 
     price: "₦80,000",
+    original_price: null,
     Icon: Users, colorClass: "text-green-600 bg-green-50",
     desc: "Limited Liability Company (LLC).",
     fields: [
@@ -57,6 +58,7 @@ const SERVICE_TEMPLATES = [
     id: 'ngo', 
     title: "NGO / Church", 
     price: "₦140,000",
+    original_price: null,
     Icon: Globe, colorClass: "text-purple-600 bg-purple-50",
     desc: "Incorporated Trustees.", 
     fields: [
@@ -76,6 +78,7 @@ const SERVICE_TEMPLATES = [
     id: 'partnership', 
     title: "Partnership", 
     price: "₦35,000",
+    original_price: null,
     Icon: Users, colorClass: "text-indigo-600 bg-indigo-50",
     desc: "Business Name with 2+ Partners.",
     fields: [
@@ -93,6 +96,7 @@ const SERVICE_TEMPLATES = [
     id: 'trademark', 
     title: "Trademark", 
     price: "₦50,000",
+    original_price: null,
     Icon: Stamp, colorClass: "text-orange-600 bg-orange-50",
     desc: "Protect your Brand.", 
     fields: [
@@ -108,6 +112,7 @@ const SERVICE_TEMPLATES = [
     id: 'export', 
     title: "Export License", 
     price: "₦60,000",
+    original_price: null,
     Icon: FileText, colorClass: "text-teal-600 bg-teal-50",
     desc: "NEPC Exporter's Certificate.",
     fields: [
@@ -122,6 +127,7 @@ const SERVICE_TEMPLATES = [
     id: 'copyright', 
     title: "Copyright", 
     price: "₦70,000",
+    original_price: null,
     Icon: Lock, colorClass: "text-red-600 bg-red-50",
     desc: "Intellectual Property Protection.",
     fields: [
@@ -140,7 +146,6 @@ export default function Services() {
   const [formData, setFormData] = useState({});
   const navigate = useNavigate(); 
   
-  // ✅ FIX 2: Better Fetch Logic
   useEffect(() => {
     const fetchPrices = async () => {
       try {
@@ -149,12 +154,12 @@ export default function Services() {
         
         if (dbPrices.length > 0) {
             const updated = SERVICE_TEMPLATES.map(t => {
-                const dbItem = dbPrices.find(p => p.id === t.id); // Matches 'services' table in DB
-                return dbItem ? { ...t, price: dbItem.price } : t;
+                const dbItem = dbPrices.find(p => p.id === t.id); 
+                // Updated to include original_price from database
+                return dbItem ? { ...t, price: dbItem.price, original_price: dbItem.original_price } : t;
             });
             setServicesList(updated);
             
-            // ✅ FIX 3: Update Active Service too if it changed
             setActiveService(prev => {
                 const updatedActive = updated.find(u => u.id === prev.id);
                 return updatedActive || prev;
@@ -173,7 +178,6 @@ export default function Services() {
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
-    // ✅ FIX 4: Robust Email Check
     const hasEmail = Object.keys(formData).some(k => k.toLowerCase().includes('email'));
     if(!hasEmail) { alert("Please enter an email address so we can contact you."); return; }
     
@@ -184,8 +188,6 @@ export default function Services() {
 
   return (
     <div className="bg-slate-50 min-h-screen font-sans">
-      
-      {/* HEADER */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
             <h1 className="text-2xl font-serif font-bold text-slate-900 flex items-center gap-2">
@@ -201,8 +203,6 @@ export default function Services() {
 
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
         <div className="grid lg:grid-cols-12 gap-8 items-start">
-            
-            {/* SIDEBAR */}
             <div className="lg:col-span-4 lg:sticky lg:top-28">
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                     <div className="p-4 border-b border-gray-100 bg-gray-50/50">
@@ -227,17 +227,21 @@ export default function Services() {
                                     <service.Icon size={18}/>
                                 </div>
                                 
-                                <div className="flex-1 min-w-0">
+                                <div className="flex-1 min-w-0 text-left">
                                     <h4 className={`font-bold text-sm truncate ${activeService.id === service.id ? 'text-white' : 'text-slate-800'}`}>
                                         {service.title}
                                     </h4>
-                                    <p className={`text-xs truncate ${activeService.id === service.id ? 'text-slate-300' : 'text-gray-400'}`}>
-                                        {service.desc}
-                                    </p>
-                                </div>
-
-                                <div className={`text-xs font-bold ${activeService.id === service.id ? 'text-green-400' : 'text-slate-900 group-hover:text-green-600'}`}>
-                                    {service.price}
+                                    <div className="flex items-center gap-2">
+                                        <span className={`text-xs font-bold ${activeService.id === service.id ? 'text-green-400' : 'text-slate-900'}`}>
+                                            {service.price}
+                                        </span>
+                                        {/* Added Sidebar Strikethrough */}
+                                        {service.original_price && (
+                                            <span className={`text-[10px] line-through ${activeService.id === service.id ? 'text-slate-400' : 'text-gray-400'}`}>
+                                                {service.original_price}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </button>
                         ))}
@@ -245,7 +249,6 @@ export default function Services() {
                 </div>
             </div>
 
-            {/* FORM PANEL */}
             <div className="lg:col-span-8">
                 <AnimatePresence mode="wait">
                     <motion.div 
@@ -256,7 +259,6 @@ export default function Services() {
                         transition={{ duration: 0.2 }}
                         className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden relative"
                     >
-                        {/* Service Header */}
                         <div className="bg-slate-900 text-white p-8 relative overflow-hidden">
                             <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
                             
@@ -270,12 +272,19 @@ export default function Services() {
                                 </div>
                                 <div className="text-right bg-white/10 p-4 rounded-xl border border-white/10 backdrop-blur-sm min-w-[140px]">
                                     <span className="block text-xs text-slate-400 uppercase tracking-wider mb-1">Fee Total</span>
-                                    <span className="text-2xl font-bold text-white">{activeService.price}</span>
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-2xl font-bold text-white">{activeService.price}</span>
+                                        {/* Added Main Form Strikethrough */}
+                                        {activeService.original_price && (
+                                            <span className="text-sm text-slate-400 line-through font-medium">
+                                                {activeService.original_price}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Form Fields */}
                         <form onSubmit={handleFormSubmit} className="p-8">
                             <div className="grid md:grid-cols-2 gap-x-6 gap-y-6">
                                 {activeService.fields.map((field, i) => (
@@ -289,7 +298,6 @@ export default function Services() {
                                                 minRows={3} required 
                                                 placeholder="Type here..."
                                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm text-slate-800 resize-none placeholder:text-gray-400"
-                                                // ✅ FIX 5: Use 'field.key' not 'field.label'
                                                 onChange={(e) => handleInputChange(field.key, e.target.value)} 
                                             />
                                         ) : field.type === 'select' ? (
@@ -326,11 +334,9 @@ export default function Services() {
                                 </button>
                             </div>
                         </form>
-
                     </motion.div>
                 </AnimatePresence>
             </div>
-
         </div>
       </div>
     </div>
