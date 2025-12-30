@@ -10,7 +10,9 @@ import {
 // ✅ YOUR KEY IS SET HERE
 const PAYSTACK_PUBLIC_KEY = "pk_test_4d1cb29343b530fce9ca00ada7b35f2017fe3a00"; 
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = import.meta.env.PROD 
+  ? "https://rex360backend.vercel.app/api"
+  : "http://localhost:5000/api";
 const CONTACT = { whatsappLink: "https://wa.me/2349048349548" };
 
 export default function Checkout() {

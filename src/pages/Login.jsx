@@ -70,7 +70,7 @@ export default function Login() {
                 type="email" 
                 required 
                 className="w-full pl-10 p-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                placeholder="rex360solutions@gmail.com"
+                placeholder="Enter your email address"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
               />
