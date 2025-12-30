@@ -12,6 +12,8 @@ const Admin = () => {
   const [activeTab, setActiveTab] = useState('services');
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [isVerifying, setIsVerifying] = useState(true); // NEW: Auth verification state
+  const [isAuthorized, setIsAuthorized] = useState(false); // NEW: Authorization check
 
   const [services, setServices] = useState([]);
   const [slides, setSlides] = useState([]);
@@ -22,17 +24,66 @@ const Admin = () => {
   const [postForm, setPostForm] = useState({ title: '', excerpt: '', category: 'Business', media: null });
   const [editingService, setEditingService] = useState(null);
 
-  // SECURITY: Verify admin access on component mount
+  // 🔒 SECURITY: Triple-layer verification - prevent any rendering until verified
   useEffect(() => {
-    const verifyAdmin = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session || session.user?.email !== ADMIN_EMAIL) {
-        // Not authenticated or not admin - redirect to login
-        navigate('/login', { replace: true });
+    const verifyAdminAccess = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error || !session) {
+          console.warn('No session found');
+          setIsVerifying(false);
+          setIsAuthorized(false);
+          setTimeout(() => navigate('/login', { replace: true }), 100);
+          return;
+        }
+
+        const userEmail = session.user?.email;
+        console.log('User email:', userEmail);
+        
+        if (userEmail === ADMIN_EMAIL) {
+          setIsAuthorized(true);
+          setIsVerifying(false);
+        } else {
+          console.warn('Unauthorized user attempted admin access:', userEmail);
+          setIsAuthorized(false);
+          setIsVerifying(false);
+          setTimeout(() => navigate('/', { replace: true }), 100);
+        }
+      } catch (err) {
+        console.error('Auth verification failed:', err);
+        setIsVerifying(false);
+        setIsAuthorized(false);
+        setTimeout(() => navigate('/login', { replace: true }), 100);
       }
     };
-    verifyAdmin();
+
+    verifyAdminAccess();
   }, [navigate]);
+
+  // NEW: Block rendering if still verifying or not authorized
+  if (isVerifying) {
+    return (
+      <div className="min-h-screen pt-32 px-4 flex justify-center items-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin text-blue-600 mb-4 text-4xl">🔐</div>
+          <p className="font-bold text-gray-700">Verifying Admin Access...</p>
+          <p className="text-sm text-gray-500 mt-2">Security check in progress</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen pt-32 px-4 flex justify-center items-center bg-gray-50">
+        <div className="text-center bg-red-50 p-8 rounded-2xl border border-red-200">
+          <p className="font-bold text-red-700 text-xl">❌ Access Denied</p>
+          <p className="text-red-600 mt-2">You do not have permission to access the admin panel</p>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => { fetchData(); }, [activeTab]);
 

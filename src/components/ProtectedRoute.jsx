@@ -5,79 +5,120 @@ import { supabase } from '../supabase';
 const ADMIN_EMAIL = 'rex360solutions@gmail.com'; // Only this email can access admin
 
 const ProtectedRoute = ({ children }) => {
-  const [session, setSession] = useState(null);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [authState, setAuthState] = useState({
+    isLoading: true,
+    isAuthenticated: false,
+    isAuthorized: false,
+    session: null,
+    user: null,
+  });
 
   useEffect(() => {
-    // Check for an active session immediately 
-    const checkAuth = async () => {
+    // Verify authentication immediately
+    const verifyAuth = async () => {
       try {
+        // Get current session
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (error || !session) {
-          setSession(null);
-          setUser(null);
-          setIsAuthorized(false);
-          setLoading(false);
+        if (error) {
+          console.error('Auth error:', error);
+          setAuthState({
+            isLoading: false,
+            isAuthenticated: false,
+            isAuthorized: false,
+            session: null,
+            user: null,
+          });
           return;
         }
 
-        setSession(session);
-        
-        // Get the user's email from the session
-        const userEmail = session?.user?.email;
-        setUser(session?.user);
-
-        // Check if this is the admin
-        if (userEmail === ADMIN_EMAIL) {
-          setIsAuthorized(true);
+        // Check if session exists and user is the admin
+        if (session && session.user?.email === ADMIN_EMAIL) {
+          setAuthState({
+            isLoading: false,
+            isAuthenticated: true,
+            isAuthorized: true,
+            session,
+            user: session.user,
+          });
         } else {
-          setIsAuthorized(false);
+          setAuthState({
+            isLoading: false,
+            isAuthenticated: !!session,
+            isAuthorized: false,
+            session,
+            user: session?.user || null,
+          });
         }
       } catch (err) {
-        console.error('Auth check error:', err);
-        setSession(null);
-        setUser(null);
-        setIsAuthorized(false);
-      } finally {
-        setLoading(false);
+        console.error('Auth check failed:', err);
+        setAuthState({
+          isLoading: false,
+          isAuthenticated: false,
+          isAuthorized: false,
+          session: null,
+          user: null,
+        });
       }
     };
 
-    checkAuth();
+    verifyAuth();
 
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (!session) {
-        setSession(null);
-        setUser(null);
-        setIsAuthorized(false);
-      } else {
-        setSession(session);
-        setUser(session.user);
-        setIsAuthorized(session.user?.email === ADMIN_EMAIL);
+    // Set up real-time auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (!session) {
+          setAuthState({
+            isLoading: false,
+            isAuthenticated: false,
+            isAuthorized: false,
+            session: null,
+            user: null,
+          });
+        } else if (session.user?.email === ADMIN_EMAIL) {
+          setAuthState({
+            isLoading: false,
+            isAuthenticated: true,
+            isAuthorized: true,
+            session,
+            user: session.user,
+          });
+        } else {
+          setAuthState({
+            isLoading: false,
+            isAuthenticated: true,
+            isAuthorized: false,
+            session,
+            user: session.user,
+          });
+        }
       }
-    });
+    );
 
-    return () => subscription?.unsubscribe();
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
 
-  if (loading) {
+  // 🔒 SECURITY: While loading, show nothing to prevent flash of content
+  if (authState.isLoading) {
     return (
-      <div className="p-20 text-center font-bold">
-        <div className="animate-spin text-blue-600 mb-4">⏳</div>
-        Verifying Security...
+      <div className="min-h-screen pt-32 px-4 flex justify-center items-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin text-blue-600 mb-4 text-4xl">⏳</div>
+          <p className="font-bold text-gray-700">Verifying Security...</p>
+          <p className="text-sm text-gray-500 mt-2">Please wait while we verify your access.</p>
+        </div>
       </div>
     );
   }
 
-  // Block access if not logged in or not admin
-  if (!session || !isAuthorized) {
+  // 🔒 SECURITY: If not authenticated or not admin, redirect to login
+  if (!authState.isAuthenticated || !authState.isAuthorized) {
     return <Navigate to="/login" replace />;
   }
 
+  // ✅ Only render children if fully authenticated and authorized
   return children;
 };
 
