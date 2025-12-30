@@ -17,24 +17,24 @@ export default function Login() {
 
     try {
       // 1. Authenticate with Supabase
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) throw error;
 
-      // 2. PRO METHOD: Save the session token to localStorage
-      // This "unlocks" the ProtectedRoute in App.jsx
-      if (data?.session) {
-        localStorage.setItem('token', data.session.access_token);
+      // Ensure we received a valid session before navigating
+      if (!data?.session) {
+        throw new Error('Authentication succeeded but no session was returned. Please try again.');
       }
 
-      // 3. Security Routing: Check if the user is the Admin
-      if (email === 'rex360solutions@gmail.com') {
-        navigate('/admin'); // Sends you to the secure dashboard
+      // Save the session token (for legacy checks)
+      localStorage.setItem('token', data.session.access_token);
+
+      // Use the returned user email (more reliable than the input) to determine admin access
+      const userEmail = data.user?.email || data.session.user?.email || email;
+      if (userEmail === 'rex360solutions@gmail.com') {
+        navigate('/admin');
       } else {
-        navigate('/'); // Sends regular clients to the homepage
+        navigate('/');
       }
 
     } catch (err) {
