@@ -5,6 +5,7 @@ import { supabase } from '../supabase'; // Import the client you shared
 import { FaTrash, FaSignOutAlt, FaMoneyBillWave, FaImages, FaNewspaper, FaUpload } from 'react-icons/fa';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://rex360backend.vercel.app/api';
+const ADMIN_EMAIL = 'rex360solutions@gmail.com'; // Only admin email
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -20,6 +21,18 @@ const Admin = () => {
   const [slideSection, setSlideSection] = useState('hero'); 
   const [postForm, setPostForm] = useState({ title: '', excerpt: '', category: 'Business', media: null });
   const [editingService, setEditingService] = useState(null);
+
+  // SECURITY: Verify admin access on component mount
+  useEffect(() => {
+    const verifyAdmin = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session || session.user?.email !== ADMIN_EMAIL) {
+        // Not authenticated or not admin - redirect to login
+        navigate('/login', { replace: true });
+      }
+    };
+    verifyAdmin();
+  }, [navigate]);
 
   useEffect(() => { fetchData(); }, [activeTab]);
 
