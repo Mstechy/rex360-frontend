@@ -98,7 +98,8 @@ const Admin = () => {
     };
   };
 
-  const fetchData = async () => {
+  // Hoisted function so useEffect can call it safely before declaration
+  async function fetchData() {
     setLoading(true);
     try {
       if (activeTab === 'services') {
@@ -113,7 +114,7 @@ const Admin = () => {
       }
     } catch (error) { console.error(error); }
     setLoading(false);
-  };
+  }
 
   const notify = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
 
