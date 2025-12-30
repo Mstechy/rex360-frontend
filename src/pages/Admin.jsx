@@ -261,6 +261,14 @@ const Admin = () => {
             </div>
           </div>
         )}
+
+        {activeTab === 'blog' && (
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h2 className="text-lg font-bold mb-6">Create Blog Post</h2>
+            {apiError && <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4 text-sm">{apiError}</div>}
+            <p className="text-gray-500 text-sm">Blog management coming soon...</p>
+          </div>
+        )}
       </div>
     </div>
   );
