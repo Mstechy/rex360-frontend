@@ -42,6 +42,7 @@ const Admin = () => {
 
   useEffect(() => { if (isAuthorized) fetchData(); }, [activeTab, isAuthorized]);
 
+  // FIX: This ensures every Delete/Upload has the correct security key
   const getAuthHeaders = async (isUpload = false) => {
     const { data: { session } } = await supabase.auth.getSession();
     return {
@@ -53,31 +54,32 @@ const Admin = () => {
   };
 
   async function fetchData() {
-    setLoading(true); setApiError(null);
+    setLoading(true);
     try {
       const endpoint = activeTab === 'content' ? 'slides' : (activeTab === 'blog' ? 'posts' : 'services');
       const res = await axios.get(`${API_URL}/${endpoint}`);
       if (activeTab === 'services') setServices(res.data || []);
       else if (activeTab === 'content') setSlides(res.data || []);
       else if (activeTab === 'blog') setPosts(res.data || []);
-    } catch (error) { setApiError('Backend sync failed'); }
+    } catch (error) { setApiError("Backend Sync Error"); }
     setLoading(false);
   }
 
   const notify = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
 
+  // UPDATE: Now sends current and strikethrough price
   const saveServicePrice = async (id, newPrice, oldPrice) => {
     try {
       const config = await getAuthHeaders();
       await axios.put(`${API_URL}/services/${id}`, { price: newPrice, original_price: oldPrice }, config);
       notify("Price updated!"); setEditingService(null); fetchData();
-    } catch (err) { alert("Save Failed: Ensure 'original_price' column exists in Supabase."); }
+    } catch (err) { alert("Save failed: Check database columns"); }
   };
 
   const uploadImage = async () => {
     if (!slideFile) return alert("Select an image first");
     const formData = new FormData();
-    formData.append('image', slideFile); // Key matches backend upload.single('image')
+    formData.append('image', slideFile); // Key matches your server.js
     formData.append('section', slideSection); 
     setLoading(true);
     try {
@@ -88,8 +90,9 @@ const Admin = () => {
     setLoading(false);
   };
 
+  // FIX: Added dynamic routing and headers for Delete
   const deleteItem = async (endpoint, id) => {
-    if(!window.confirm("Permanent Delete?")) return;
+    if(!window.confirm("Are you sure?")) return;
     try { 
       const config = await getAuthHeaders();
       const target = endpoint === 'content' ? 'slides' : (endpoint === 'blog' ? 'posts' : 'services');
@@ -104,7 +107,7 @@ const Admin = () => {
     formData.append('title', postForm.title);
     formData.append('excerpt', postForm.excerpt);
     formData.append('category', postForm.category);
-    if (postForm.media) formData.append('media', postForm.media); // Key matches backend upload.single('media')
+    if (postForm.media) formData.append('media', postForm.media); // Key matches your server.js
 
     setLoading(true);
     try { 
@@ -119,10 +122,10 @@ const Admin = () => {
 
   const handleLogout = async () => { await supabase.auth.signOut(); navigate('/login'); };
 
-  if (isVerifying) return <div className="min-h-screen flex items-center justify-center font-bold">🔐 Authenticating...</div>;
+  if (isVerifying) return <div className="min-h-screen flex items-center justify-center font-bold">🔐 Verifying Admin...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans pb-20">
+    <div className="min-h-screen bg-gray-50 font-sans text-gray-800 pb-20">
       <div className="bg-white shadow px-6 py-4 flex justify-between items-center sticky top-0 z-30">
         <h1 className="text-xl font-bold">REX360 Admin</h1>
         <button onClick={handleLogout} className="text-red-600 font-bold flex items-center gap-2 text-sm"><FaSignOutAlt /> Logout</button>
@@ -137,61 +140,69 @@ const Admin = () => {
             { id: 'content', icon: FaImages, label: 'Website Images' },
             { id: 'blog', icon: FaNewspaper, label: 'News & Blog' }
           ].map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-5 py-3 rounded-xl font-bold flex items-center gap-2 ${activeTab === tab.id ? 'bg-gray-900 text-white' : 'bg-white text-gray-500 border'}`}>
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-5 py-3 rounded-xl font-bold flex items-center gap-2 ${activeTab === tab.id ? 'bg-gray-900 text-white shadow-lg' : 'bg-white text-gray-500 shadow-sm border'}`}>
               <tab.icon /> {tab.label}
             </button>
           ))}
         </div>
 
         {activeTab === 'services' && (
-          <div className="grid md:grid-cols-2 gap-4">
-            {services.map((s) => (
-              <div key={s.id} className="bg-white p-5 rounded-xl border flex flex-col justify-between shadow-sm">
-                <div>
-                   <p className="font-bold text-gray-700">{s.title}</p>
-                   {editingService === s.id ? (
-                    <div className="mt-3 space-y-2">
-                      <input id={`p-${s.id}`} defaultValue={s.price} className="border p-2 w-full rounded text-sm" placeholder="Current Price" />
-                      <input id={`op-${s.id}`} defaultValue={s.original_price} className="border p-2 w-full rounded text-sm" placeholder="Original Price" />
-                      <button onClick={() => saveServicePrice(s.id, document.getElementById(`p-${s.id}`).value, document.getElementById(`op-${s.id}`).value)} className="w-full bg-green-600 text-white py-2 rounded font-bold">Save</button>
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h2 className="text-lg font-bold mb-6">Service Price List</h2>
+            <div className="grid md:grid-cols-2 gap-4">
+              {services.map((s) => (
+                <div key={s.id} className="border p-4 rounded-xl flex flex-col gap-3 bg-gray-50">
+                  <span className="font-bold text-gray-700">{s.title}</span>
+                  {editingService === s.id ? (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex gap-2">
+                        <input type="text" id={`p-${s.id}`} defaultValue={s.price} className="border p-2 w-full rounded" />
+                        <input type="text" id={`op-${s.id}`} defaultValue={s.original_price} className="border p-2 w-full rounded" placeholder="Strike Price" />
+                      </div>
+                      <button onClick={() => saveServicePrice(s.id, document.getElementById(`p-${s.id}`).value, document.getElementById(`op-${s.id}`).value)} className="bg-green-600 text-white py-2 rounded font-bold">Save</button>
                     </div>
                   ) : (
-                    <div className="mt-2 flex items-baseline gap-2">
-                       <span className="text-lg font-bold text-blue-600">{s.price}</span>
-                       {s.original_price && <span className="text-gray-400 line-through text-xs">{s.original_price}</span>}
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <span className="text-green-700 font-bold bg-green-100 px-3 py-1 rounded-full text-sm">{s.price}</span>
+                        {s.original_price && <span className="text-gray-400 line-through text-xs font-medium">{s.original_price}</span>}
+                      </div>
+                      <div className="flex gap-4">
+                         <button onClick={() => setEditingService(s.id)} className="text-blue-600 text-sm underline font-semibold">Edit</button>
+                         <button onClick={() => deleteItem('services', s.id)} className="text-red-500"><FaTrash /></button>
+                      </div>
                     </div>
                   )}
                 </div>
-                <div className="mt-4 flex justify-between items-center border-t pt-2">
-                   <button onClick={() => setEditingService(s.id)} className="text-blue-500 text-sm font-bold">Edit Price</button>
-                   <button onClick={() => deleteItem('services', s.id)} className="text-red-500"><FaTrash /></button>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
         {activeTab === 'content' && (
           <div className="space-y-8">
-            <div className="bg-white p-6 rounded-2xl border shadow-sm">
-              <h2 className="text-lg font-bold mb-6 flex items-center gap-2"><FaUpload/> Image Upload</h2>
-              <div className="flex flex-wrap gap-4 items-end">
-                <select className="border p-3 rounded-lg bg-gray-50 text-sm" value={slideSection} onChange={(e) => setSlideSection(e.target.value)}>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <h2 className="text-lg font-bold mb-6 flex items-center gap-2"><FaUpload/> Upload Manager</h2>
+              <div className="grid md:grid-cols-12 gap-4 items-end">
+                <div className="md:col-span-4">
+                  <select className="w-full border p-3 rounded-lg bg-gray-50" value={slideSection} onChange={(e) => setSlideSection(e.target.value)}>
                     <option value="hero">Home Slider</option>
-                    <option value="certificate">Validation Certificate</option>
-                    <option value="agent">Authorized Agent</option>
-                </select>
-                <input type="file" onChange={(e) => setSlideFile(e.target.files[0])} className="border p-2 rounded-lg bg-gray-50 text-sm" />
-                <button onClick={uploadImage} disabled={loading} className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold">Upload</button>
+                    <option value="certificate">Certificate Image</option>
+                    <option value="agent">Agent Picture</option>
+                  </select>
+                </div>
+                <div className="md:col-span-6"><input type="file" onChange={(e) => setSlideFile(e.target.files[0])} className="w-full border p-2.5 rounded-lg bg-gray-50" /></div>
+                <div className="md:col-span-2"><button onClick={uploadImage} disabled={loading} className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg">Upload</button></div>
               </div>
             </div>
+            {/* Mirror List: Shows what is live on your homepage */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                {slides.map(img => (
-                 <div key={img.id} className="group border rounded-xl overflow-hidden relative shadow-sm bg-white">
+                 <div key={img.id} className="border rounded-xl overflow-hidden relative shadow-sm group">
                     <img src={img.image_url} className="w-full h-32 object-cover" />
                     <div className="p-2 flex justify-between items-center bg-gray-50">
                        <span className="text-[10px] font-bold uppercase text-blue-600">{img.section}</span>
-                       <button onClick={() => deleteItem('content', img.id)} className="text-red-500 hover:scale-110 transition-transform"><FaTrash/></button>
+                       <button onClick={() => deleteItem('content', img.id)} className="text-red-500"><FaTrash/></button>
                     </div>
                  </div>
                ))}
@@ -201,20 +212,19 @@ const Admin = () => {
 
         {activeTab === 'blog' && (
           <div className="space-y-8">
-            <div className="bg-white p-6 rounded-2xl border shadow-sm">
-              <h2 className="text-lg font-bold mb-6">Create Post</h2>
-              <form onSubmit={createPost} className="space-y-4">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <h2 className="text-lg font-bold mb-6 flex items-center gap-2"><FaNewspaper /> Create Blog Post</h2>
+              <form onSubmit={createPost} className="space-y-5">
                 <input type="text" required className="w-full border p-3 rounded-lg" placeholder="Post Title" value={postForm.title} onChange={(e) => setPostForm({...postForm, title: e.target.value})} />
-                <textarea required className="w-full border p-3 rounded-lg h-32" placeholder="Post Excerpt" value={postForm.excerpt} onChange={(e) => setPostForm({...postForm, excerpt: e.target.value})} />
-                <div className="flex items-center gap-4">
-                   <input type="file" className="border p-2 rounded-lg text-sm w-full" onChange={(e) => setPostForm({...postForm, media: e.target.files[0]})} />
-                   <select className="border p-3 rounded-lg text-sm font-bold" value={postForm.category} onChange={(e) => setPostForm({...postForm, category: e.target.value})}>
+                <textarea required className="w-full border p-3 rounded-lg" placeholder="Post Excerpt" value={postForm.excerpt} onChange={(e) => setPostForm({...postForm, excerpt: e.target.value})} />
+                <div className="flex gap-4">
+                   <input type="file" className="w-full border p-3 rounded-lg" onChange={(e) => setPostForm({...postForm, media: e.target.files[0]})} />
+                   <select className="border p-3 rounded-lg font-bold text-sm" value={postForm.category} onChange={(e) => setPostForm({...postForm, category: e.target.value})}>
                       <option value="Business">Business</option>
-                      <option value="CAC">CAC Updates</option>
-                      <option value="News">News</option>
+                      <option value="CAC">CAC News</option>
                    </select>
                 </div>
-                <button type="submit" className="w-full bg-blue-900 text-white py-4 rounded-lg font-bold">Publish Post</button>
+                <button type="submit" disabled={loading} className="w-full bg-blue-950 text-white font-bold py-3 rounded-lg">Publish Post</button>
               </form>
             </div>
             <div className="space-y-3">
@@ -222,7 +232,7 @@ const Admin = () => {
                  <div key={post.id} className="bg-white p-4 rounded-xl border flex justify-between items-center shadow-sm">
                     <div className="flex items-center gap-4">
                        {post.media_url && <img src={post.media_url} className="w-10 h-10 rounded object-cover shadow-sm" />}
-                       <span className="font-bold text-sm text-gray-700">{post.title}</span>
+                       <span className="font-bold text-sm">{post.title}</span>
                     </div>
                     <button onClick={() => deleteItem('blog', post.id)} className="text-red-500"><FaTrash /></button>
                  </div>
