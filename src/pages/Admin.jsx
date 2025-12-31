@@ -5,7 +5,7 @@ import { supabase } from '../supabase';
 import { FaTrash, FaSignOutAlt, FaMoneyBillWave, FaImages, FaNewspaper, FaUpload } from 'react-icons/fa';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://rex360backend.vercel.app/api';
-const ADMIN_EMAIL = 'rex360solutions@gmail.com';
+const ADMIN_EMAIL = 'rex360solutions@gmail.com'; 
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -25,6 +25,7 @@ const Admin = () => {
   const [editingService, setEditingService] = useState(null);
   const [apiError, setApiError] = useState(null);
 
+  // 🔒 Security: Strictly your logic
   useEffect(() => {
     const verifyAdminAccess = async () => {
       try {
@@ -42,6 +43,7 @@ const Admin = () => {
 
   useEffect(() => { if (isAuthorized) fetchData(); }, [activeTab, isAuthorized]);
 
+  // 🔑 Fix: Security Key for all Uploads/Deletes
   const getAuthHeaders = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     return { headers: { 'Authorization': `Bearer ${session?.access_token}` } };
@@ -50,31 +52,50 @@ const Admin = () => {
   async function fetchData() {
     setLoading(true);
     try {
-      if (activeTab === 'services') {
-        const res = await axios.get(`${API_URL}/services`);
-        setServices(res.data || []);
-      } else if (activeTab === 'content') {
-        const res = await axios.get(`${API_URL}/slides`);
-        setSlides(res.data || []);
-      } else if (activeTab === 'blog') {
-        const res = await axios.get(`${API_URL}/posts`);
-        setPosts(res.data || []);
-      }
-    } catch (error) { setApiError("Sync failed"); }
+      const endpoint = activeTab === 'content' ? 'slides' : activeTab;
+      const res = await axios.get(`${API_URL}/${endpoint}`);
+      if (activeTab === 'services') setServices(res.data || []);
+      else if (activeTab === 'content') setSlides(res.data || []);
+      else if (activeTab === 'blog') setPosts(res.data || []);
+    } catch (error) { setApiError("Sync error with backend"); }
     setLoading(false);
   }
 
   const notify = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
 
-  // FIX: Delete Functionality
+  // 🛠️ Professional Fix: Service Update
+  const saveServicePrice = async (id, newPrice, oldPrice) => {
+    try {
+      const config = await getAuthHeaders();
+      await axios.put(`${API_URL}/services/${id}`, { price: newPrice, original_price: oldPrice }, config);
+      notify("Price updated!"); setEditingService(null); fetchData();
+    } catch (err) { alert("Update failed - Column 'original_price' may be missing in Supabase"); }
+  };
+
+  const uploadImage = async () => {
+    if (!slideFile) return alert("Select an image first");
+    const formData = new FormData();
+    formData.append('image', slideFile);
+    formData.append('section', slideSection);
+    setLoading(true);
+    try {
+      const config = await getAuthHeaders();
+      await axios.post(`${API_URL}/slides`, formData, {
+        headers: { ...config.headers, 'Content-Type': 'multipart/form-data' }
+      });
+      notify("Uploaded!"); setSlideFile(null); fetchData();
+    } catch (err) { alert("Upload failed"); }
+    setLoading(false);
+  };
+
+  // 🛠️ Professional Fix: Delete Logic for All Tabs
   const deleteItem = async (endpoint, id) => {
-    if(!window.confirm("Are you sure? This will remove it from the homepage.")) return;
+    if(!window.confirm("Remove this from your website?")) return;
     try { 
       const config = await getAuthHeaders();
       await axios.delete(`${API_URL}/${endpoint}/${id}`, config); 
-      notify("Item deleted!");
       fetchData(); 
-    } catch(err) { alert("Delete failed. Check your connection."); }
+    } catch(err) { alert("Delete failed - Check API"); }
   };
 
   const createPost = async (e) => {
@@ -83,27 +104,22 @@ const Admin = () => {
     formData.append('title', postForm.title);
     formData.append('excerpt', postForm.excerpt);
     formData.append('category', postForm.category);
-    if (postForm.media) formData.append('image', postForm.media); // FIX: Now sends image
+    if (postForm.media) formData.append('image', postForm.media); // Added Image Field
 
     setLoading(true);
     try { 
-      const config = await getAuthHeaders(); // Fixed: Use common headers
+      const config = await getAuthHeaders();
       await axios.post(`${API_URL}/posts`, formData, {
-        headers: { 
-          ...config.headers,
-          'Content-Type': 'multipart/form-data' 
-        }
+        headers: { ...config.headers, 'Content-Type': 'multipart/form-data' }
       }); 
-      notify("Post created with image!"); 
-      setPostForm({ title: '', excerpt: '', category: 'Business', media: null });
-      fetchData(); 
-    } catch (err) { alert("Upload failed"); }
+      notify("Post Published!"); fetchData(); 
+    } catch (err) { alert("Post failed"); }
     setLoading(false);
   };
 
   const handleLogout = async () => { await supabase.auth.signOut(); navigate('/login'); };
 
-  if (isVerifying) return <div className="min-h-screen flex items-center justify-center font-bold">Verifying...</div>;
+  if (isVerifying) return <div className="min-h-screen flex items-center justify-center">🔐 Verifying Access...</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 font-sans">
@@ -113,6 +129,7 @@ const Admin = () => {
       </div>
 
       <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {/* Strictly your Tab structure */}
         <div className="flex flex-wrap gap-3 mb-8">
           {[
             { id: 'services', icon: FaMoneyBillWave, label: 'Prices & Services' },
@@ -125,33 +142,57 @@ const Admin = () => {
           ))}
         </div>
 
+        {/* 1. Services Tab: View + Edit + Delete */}
         {activeTab === 'services' && (
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <h2 className="text-lg font-bold mb-6">Service Price List</h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              {services.map((s) => (
-                <div key={s.id} className="border p-4 rounded-xl flex justify-between items-center bg-gray-50">
-                  <span className="font-bold text-gray-700">{s.title}</span>
-                  <div className="flex items-center gap-4">
-                    <span className="text-green-700 font-bold">{s.price}</span>
-                    <button onClick={() => deleteItem('services', s.id)} className="text-red-500"><FaTrash /></button>
-                  </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            {services.map((s) => (
+              <div key={s.id} className="bg-white p-5 rounded-xl border flex flex-col justify-between">
+                <div>
+                  <p className="font-bold text-gray-800">{s.title}</p>
+                  {editingService === s.id ? (
+                    <div className="mt-2 space-y-2">
+                      <input id={`p-${s.id}`} defaultValue={s.price} className="border p-1 w-full rounded" placeholder="Price" />
+                      <input id={`op-${s.id}`} defaultValue={s.original_price} className="border p-1 w-full rounded" placeholder="Old Price" />
+                      <button onClick={() => saveServicePrice(s.id, document.getElementById(`p-${s.id}`).value, document.getElementById(`op-${s.id}`).value)} className="w-full bg-green-600 text-white rounded py-1">Save</button>
+                    </div>
+                  ) : (
+                    <div className="mt-2">
+                       <span className="font-bold text-green-700">{s.price}</span>
+                       {s.original_price && <span className="ml-2 text-gray-400 line-through text-xs">{s.original_price}</span>}
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
+                <div className="mt-4 flex justify-end gap-4 border-t pt-2">
+                  <button onClick={() => setEditingService(s.id)} className="text-blue-500 text-xs font-bold">EDIT</button>
+                  <button onClick={() => deleteItem('services', s.id)} className="text-red-500"><FaTrash /></button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
+        {/* 2. Images Tab: Upload + Mirror List */}
         {activeTab === 'content' && (
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <h2 className="text-lg font-bold mb-6">Live Images (Slides/Agents)</h2>
+          <div className="space-y-8">
+            <div className="bg-white p-6 rounded-xl border">
+              <h2 className="font-bold mb-4 flex items-center gap-2"><FaUpload/> Upload Manager</h2>
+              <div className="flex flex-wrap gap-4 items-end">
+                <select className="border p-2 rounded" value={slideSection} onChange={(e) => setSlideSection(e.target.value)}>
+                  <option value="hero">Home Slider</option>
+                  <option value="certificate">Certificate</option>
+                  <option value="agent">Agent Picture</option>
+                </select>
+                <input type="file" onChange={(e) => setSlideFile(e.target.files[0])} className="border p-1 rounded" />
+                <button onClick={uploadImage} className="bg-blue-600 text-white px-6 py-2 rounded font-bold">Upload</button>
+              </div>
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {slides.map((slide) => (
-                <div key={slide.id} className="border rounded-xl overflow-hidden shadow-sm">
-                  <img src={slide.image_url} className="w-full h-24 object-cover" />
-                  <div className="p-2 flex justify-between items-center">
-                    <span className="text-[10px] uppercase font-bold">{slide.section}</span>
-                    <button onClick={() => deleteItem('slides', slide.id)} className="text-red-500"><FaTrash /></button>
+              {slides.map(img => (
+                <div key={img.id} className="border rounded-lg overflow-hidden relative group">
+                  <img src={img.image_url} className="w-full h-24 object-cover" />
+                  <div className="p-2 flex justify-between items-center bg-gray-50">
+                    <span className="text-[10px] font-bold uppercase text-blue-600">{img.section}</span>
+                    <button onClick={() => deleteItem('slides', img.id)} className="text-red-500"><FaTrash size={14}/></button>
                   </div>
                 </div>
               ))}
@@ -159,35 +200,25 @@ const Admin = () => {
           </div>
         )}
 
+        {/* 3. Blog Tab: Post + List */}
         {activeTab === 'blog' && (
           <div className="space-y-8">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <h2 className="text-lg font-bold mb-6">Create Blog Post</h2>
+            <div className="bg-white p-6 rounded-xl border">
+              <h2 className="font-bold mb-4">Create Blog Post</h2>
               <form onSubmit={createPost} className="space-y-4">
-                <input type="text" required className="w-full border p-3 rounded-lg" placeholder="Title" value={postForm.title} onChange={(e) => setPostForm({...postForm, title: e.target.value})} />
-                <textarea required className="w-full border p-3 rounded-lg" placeholder="Excerpt" value={postForm.excerpt} onChange={(e) => setPostForm({...postForm, excerpt: e.target.value})} />
-                {/* STRICT FIX: Added Image Upload Field for Blog */}
-                <div className="flex flex-col gap-2">
-                   <label className="text-xs font-bold text-gray-500 uppercase">Featured Image</label>
-                   <input type="file" className="w-full border p-2 rounded-lg" onChange={(e) => setPostForm({...postForm, media: e.target.files[0]})} />
-                </div>
-                <button type="submit" className="w-full bg-blue-900 text-white py-3 rounded-lg font-bold">Publish Post</button>
+                <input type="text" required placeholder="Title" className="w-full border p-2 rounded" value={postForm.title} onChange={(e) => setPostForm({...postForm, title: e.target.value})} />
+                <textarea required placeholder="Excerpt" className="w-full border p-2 rounded" value={postForm.excerpt} onChange={(e) => setPostForm({...postForm, excerpt: e.target.value})} />
+                <input type="file" className="w-full border p-1 rounded" onChange={(e) => setPostForm({...postForm, media: e.target.files[0]})} />
+                <button type="submit" className="w-full bg-blue-900 text-white py-2 rounded font-bold">Publish</button>
               </form>
             </div>
-
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <h2 className="text-lg font-bold mb-6">Manage Blog Posts</h2>
-              <div className="space-y-4">
-                {posts.map(post => (
-                  <div key={post.id} className="flex justify-between items-center border p-4 rounded-xl bg-gray-50">
-                    <div className="flex items-center gap-4">
-                      {post.image_url && <img src={post.image_url} className="w-12 h-12 object-cover rounded shadow" />}
-                      <span className="font-bold">{post.title}</span>
-                    </div>
-                    <button onClick={() => deleteItem('posts', post.id)} className="text-red-500"><FaTrash /></button>
-                  </div>
-                ))}
-              </div>
+            <div className="space-y-2">
+              {posts.map(post => (
+                <div key={post.id} className="bg-white p-4 border rounded-lg flex justify-between items-center">
+                  <span className="font-bold text-sm">{post.title}</span>
+                  <button onClick={() => deleteItem('posts', post.id)} className="text-red-500"><FaTrash /></button>
+                </div>
+              ))}
             </div>
           </div>
         )}
