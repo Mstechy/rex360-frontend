@@ -42,12 +42,13 @@ const Admin = () => {
 
   useEffect(() => { if (isAuthorized) fetchData(); }, [activeTab, isAuthorized]);
 
-  // FIX: This ensures every Delete/Upload has the correct security key
+  // FIX: This ensures every Delete/Upload pulls a FRESH session token right before the request
   const getAuthHeaders = async (isUpload = false) => {
     const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return null;
     return {
       headers: {
-        'Authorization': `Bearer ${session?.access_token}`,
+        'Authorization': `Bearer ${session.access_token}`,
         'Content-Type': isUpload ? 'multipart/form-data' : 'application/json'
       }
     };
@@ -67,36 +68,39 @@ const Admin = () => {
 
   const notify = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
 
-  // UPDATE: Now sends current and strikethrough price
   const saveServicePrice = async (id, newPrice, oldPrice) => {
     try {
       const config = await getAuthHeaders();
+      if (!config) throw new Error("Session expired");
       await axios.put(`${API_URL}/services/${id}`, { price: newPrice, original_price: oldPrice }, config);
       notify("Price updated!"); setEditingService(null); fetchData();
-    } catch (err) { alert("Save failed: Check database columns"); }
+    } catch (err) { alert("Save failed: Check database columns or session"); }
   };
 
   const uploadImage = async () => {
     if (!slideFile) return alert("Select an image first");
     const formData = new FormData();
-    formData.append('image', slideFile); // Key matches your server.js
+    formData.append('image', slideFile); 
     formData.append('section', slideSection); 
     setLoading(true);
     try {
       const config = await getAuthHeaders(true);
+      if (!config) throw new Error("Session expired");
       await axios.post(`${API_URL}/slides`, formData, config);
       notify("Image Uploaded!"); setSlideFile(null); fetchData();
-    } catch (err) { alert("Upload failed"); }
+    } catch (err) { alert("Upload failed: Verify your session"); }
     setLoading(false);
   };
 
-  // FIX: Added dynamic routing and headers for Delete
+  // FIX: Explicitly using 'slides' for content deletion to match your server routes
   const deleteItem = async (endpoint, id) => {
     if(!window.confirm("Are you sure?")) return;
     try { 
       const config = await getAuthHeaders();
+      if (!config) throw new Error("Session expired");
       const target = endpoint === 'content' ? 'slides' : (endpoint === 'blog' ? 'posts' : 'services');
       await axios.delete(`${API_URL}/${target}/${id}`, config); 
+      notify("Deleted successfully!");
       fetchData(); 
     } catch(err) { alert("Delete failed - Verify your session"); }
   };
@@ -107,16 +111,17 @@ const Admin = () => {
     formData.append('title', postForm.title);
     formData.append('excerpt', postForm.excerpt);
     formData.append('category', postForm.category);
-    if (postForm.media) formData.append('media', postForm.media); // Key matches your server.js
+    if (postForm.media) formData.append('media', postForm.media); 
 
     setLoading(true);
     try { 
       const config = await getAuthHeaders(true);
+      if (!config) throw new Error("Session expired");
       await axios.post(`${API_URL}/posts`, formData, config); 
       notify("Post Published!"); 
       setPostForm({ title: '', excerpt: '', category: 'Business', media: null });
       fetchData(); 
-    } catch (err) { alert("Post failed"); }
+    } catch (err) { alert("Post failed: Verify your session"); }
     setLoading(false);
   };
 
@@ -195,7 +200,6 @@ const Admin = () => {
                 <div className="md:col-span-2"><button onClick={uploadImage} disabled={loading} className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg">Upload</button></div>
               </div>
             </div>
-            {/* Mirror List: Shows what is live on your homepage */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                {slides.map(img => (
                  <div key={img.id} className="border rounded-xl overflow-hidden relative shadow-sm group">
