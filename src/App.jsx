@@ -19,6 +19,7 @@ import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import UpdatePassword from './pages/UpdatePassword';
 import Checkout from './pages/Checkout'; 
+import PaymentSuccess from './pages/PaymentSuccess'; // NEW: Imported the Success Page
 
 function App() {
   return (
@@ -40,6 +41,9 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/update-password" element={<UpdatePassword />} />
           <Route path="/checkout" element={<Checkout />} />
+          
+          {/* NEW: Payment Success Landing Page */}
+          <Route path="/payment-success" element={<PaymentSuccess />} />
           
           {/* SECURE ADMIN PAGE - ONLY accessible with a password */}
           <Route 
