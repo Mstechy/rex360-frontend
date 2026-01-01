@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase'; 
-import { FaTrash, FaSignOutAlt, FaMoneyBillWave, FaImages, FaNewspaper, FaUpload } from 'react-icons/fa';
+import { FaTrash, FaSignOutAlt, FaMoneyBillWave, FaImages, FaNewspaper, FaUpload, FaShoppingCart } from 'react-icons/fa';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://rex360backend.vercel.app/api';
 const ADMIN_EMAIL = 'rex360solutions@gmail.com'; 
@@ -42,7 +42,6 @@ const Admin = () => {
 
   useEffect(() => { if (isAuthorized) fetchData(); }, [activeTab, isAuthorized]);
 
-  // FIX: This ensures every sensitive request pulls a FRESH token for the Vercel backend
   const getAuthHeaders = async (isUpload = false) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return null;
@@ -92,23 +91,16 @@ const Admin = () => {
     setLoading(false);
   };
 
-  // FIX: Explicitly mapping 'content' tab to 'slides' to fix the 404 error
   const deleteItem = async (endpoint, id) => {
     if(!window.confirm("Are you sure?")) return;
     try { 
       const config = await getAuthHeaders();
       if (!config) throw new Error("Session expired");
-      
-      // Pluralized map to match your server.js routes exactly
       const target = endpoint === 'content' ? 'slides' : (endpoint === 'blog' ? 'posts' : 'services');
-      
       await axios.delete(`${API_URL}/${target}/${id}`, config); 
       notify("Deleted successfully!");
       fetchData(); 
-    } catch(err) { 
-        // Directly addresses the error shown in your console
-        alert("Delete failed - Verify your session or check Vercel logs."); 
-    }
+    } catch(err) { alert("Delete failed - Verify your session or check Vercel logs."); }
   };
 
   const createPost = async (e) => {
@@ -159,11 +151,17 @@ const Admin = () => {
 
         {activeTab === 'services' && (
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <h2 className="text-lg font-bold mb-6">Service Price List</h2>
+            <h2 className="text-lg font-bold mb-6 flex justify-between items-center">
+               <span>Service Price List</span>
+               <span className="text-xs text-blue-600 font-normal">Course Flow: Paystack Active</span>
+            </h2>
             <div className="grid md:grid-cols-2 gap-4">
               {services.map((s) => (
                 <div key={s.id} className="border p-4 rounded-xl flex flex-col gap-3 bg-gray-50">
-                  <span className="font-bold text-gray-700">{s.title}</span>
+                  <div className="flex justify-between items-start">
+                    <span className="font-bold text-gray-700">{s.title}</span>
+                    <FaShoppingCart className="text-gray-300" title="Course Flow Enabled" />
+                  </div>
                   {editingService === s.id ? (
                     <div className="flex flex-col gap-2">
                       <div className="flex gap-2">
@@ -179,7 +177,7 @@ const Admin = () => {
                         {s.original_price && <span className="text-gray-400 line-through text-xs font-medium">{s.original_price}</span>}
                       </div>
                       <div className="flex gap-4">
-                         <button onClick={() => setEditingService(s.id)} className="text-blue-600 text-sm underline font-semibold">Edit</button>
+                         <button onClick={() => setEditingService(s.id)} className="text-blue-600 text-sm underline font-semibold">Edit Price</button>
                          <button onClick={() => deleteItem('services', s.id)} className="text-red-500"><FaTrash /></button>
                       </div>
                     </div>
