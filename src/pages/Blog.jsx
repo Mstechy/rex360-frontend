@@ -1,4 +1,4 @@
-{ useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -113,7 +113,7 @@ export default function Blog() {
             {filteredPosts.map((post) => (
             <motion.article key={post.id} variants={cardVariants} className="group bg-white dark:bg-slate-900 rounded-[2rem] overflow-hidden border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 flex flex-col h-full relative z-0">
                 <Link to={`/blog/${post.id}`} className="block relative aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-slate-800">
-                    {/* Updated to match server.js media_type check */}
+                    {/* Synchronized with server.js logic */}
                     {post.media_type === 'video' ? (
                         <div className="relative w-full h-full">
                             <video src={post.media_url} className="w-full h-full object-cover" muted />
