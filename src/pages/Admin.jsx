@@ -127,7 +127,7 @@ const Admin = () => {
   if (isVerifying) return <div className="h-screen bg-slate-950 flex items-center justify-center text-white font-black uppercase tracking-[0.5em]">Verifying Security...</div>;
 
   return (
-    <div className="min-h-screen bg-[#F1F3F6] pb-20">
+    <div className="min-h-screen bg-slate-50 pb-20">
       {/* HEADER */}
       <nav className="bg-white border-b px-10 py-6 flex justify-between items-center sticky top-0 z-50">
         <div className="flex items-center gap-4">

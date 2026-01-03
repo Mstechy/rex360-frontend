@@ -41,7 +41,7 @@ const Home = () => {
   };
 
   return (
-    <div className="bg-[#fcfcfc] text-slate-900 selection:bg-green-600 selection:text-white">
+    <div className="bg-slate-50 text-slate-900 selection:bg-green-600 selection:text-white">
       {/* Scroll Progress Bar */}
       <motion.div className="fixed top-0 left-0 right-0 h-1 bg-green-500 origin-left z-[100]" style={{ scaleX }} />
 

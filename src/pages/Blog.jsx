@@ -67,7 +67,7 @@ export default function Blog() {
   );
 
   return (
-    <div className="min-h-screen bg-[#FBFBFC] text-slate-900 selection:bg-green-600 selection:text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-green-600 selection:text-white">
       
       {/* --- HEADER: EDITORIAL AUTHORITY --- */}
       <header className="pt-40 pb-24 px-8 relative overflow-hidden bg-white">
