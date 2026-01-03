@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom'; 
+import { useNavigate, useLocation } from 'react-router-dom'; // Fixed: Location import at top level
 import { 
   Briefcase, Users, Globe, Stamp, FileText, Lock, 
   ChevronRight, CheckCircle2, LockKeyhole, Sparkles 
@@ -145,7 +145,22 @@ export default function Services() {
   const [activeService, setActiveService] = useState(SERVICE_TEMPLATES[0]);
   const [formData, setFormData] = useState({});
   const navigate = useNavigate(); 
-  
+  const location = useLocation();
+
+  // --- SYNC 1: URL Navigation (Handles Home Page Redirects) ---
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const serviceId = params.get('id');
+    
+    if (serviceId) {
+      const selected = SERVICE_TEMPLATES.find(s => s.id === serviceId);
+      if (selected) {
+        setActiveService(selected);
+      }
+    }
+  }, [location]);
+
+  // --- SYNC 2: Price Database ---
   useEffect(() => {
     const fetchPrices = async () => {
       try {
@@ -202,6 +217,7 @@ export default function Services() {
 
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
         <div className="grid lg:grid-cols-12 gap-8 items-start">
+            {/* Sidebar with Available Services */}
             <div className="lg:col-span-4 lg:sticky lg:top-28">
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                     <div className="p-4 border-b border-gray-100 bg-gray-50/50">
@@ -247,6 +263,7 @@ export default function Services() {
                 </div>
             </div>
 
+            {/* Dynamic Service Form */}
             <div className="lg:col-span-8">
                 <AnimatePresence mode="wait">
                     <motion.div 

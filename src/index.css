@@ -2,3 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  body {
+    @apply bg-white text-slate-900 antialiased;
+    font-family: 'Inter', sans-serif; /* Clean font choice */
+  }
+
+  /* --- NORMAL CUSTOMER SCALE --- */
+  h1 {
+    @apply text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-tight; /* Controlled size */
+  }
+
+  h2 {
+    @apply text-3xl md:text-4xl font-bold tracking-tight;
+  }
+
+  p {
+    @apply text-base md:text-lg text-slate-500 leading-relaxed max-w-[65ch]; /* Width limit to prevent "big" look */
+  }
+}
+
+@layer components {
+  .btn-elite {
+    @apply px-8 py-3 bg-slate-950 text-white font-bold rounded-xl hover:bg-green-600 transition-all;
+  }
+  
+  .card-elite {
+    @apply bg-white p-8 rounded-3xl border border-slate-200 shadow-sm transition-all;
+  }
+}
