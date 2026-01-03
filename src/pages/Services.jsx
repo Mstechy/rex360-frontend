@@ -7,14 +7,14 @@ import {
 } from 'lucide-react';
 import TextareaAutosize from 'react-textarea-autosize';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://rex360backend.vercel.app/api';
 
 const SERVICE_TEMPLATES = [
   {
     id: 'biz-name', 
     title: "Business Name", 
     price: "₦35,000",
-    original_price: null, // Added to template
+    original_price: null,
     Icon: Briefcase, colorClass: "text-blue-600 bg-blue-50",
     desc: "Sole Proprietorship / Venture.",
     fields: [
@@ -155,8 +155,7 @@ export default function Services() {
         if (dbPrices.length > 0) {
             const updated = SERVICE_TEMPLATES.map(t => {
                 const dbItem = dbPrices.find(p => p.id === t.id); 
-                // Updated to include original_price from database
-                return dbItem ? { ...t, price: dbItem.price, original_price: dbItem.original_price } : t;
+                return dbItem ? { ...t, price: `₦${dbItem.price.toLocaleString()}`, original_price: dbItem.original_price ? `₦${dbItem.original_price.toLocaleString()}` : null } : t;
             });
             setServicesList(updated);
             
@@ -235,7 +234,6 @@ export default function Services() {
                                         <span className={`text-xs font-bold ${activeService.id === service.id ? 'text-green-400' : 'text-slate-900'}`}>
                                             {service.price}
                                         </span>
-                                        {/* Added Sidebar Strikethrough */}
                                         {service.original_price && (
                                             <span className={`text-[10px] line-through ${activeService.id === service.id ? 'text-slate-400' : 'text-gray-400'}`}>
                                                 {service.original_price}
@@ -274,7 +272,6 @@ export default function Services() {
                                     <span className="block text-xs text-slate-400 uppercase tracking-wider mb-1">Fee Total</span>
                                     <div className="flex flex-col items-end">
                                         <span className="text-2xl font-bold text-white">{activeService.price}</span>
-                                        {/* Added Main Form Strikethrough */}
                                         {activeService.original_price && (
                                             <span className="text-sm text-slate-400 line-through font-medium">
                                                 {activeService.original_price}

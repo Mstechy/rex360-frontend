@@ -25,6 +25,9 @@ const Navbar = () => {
           <Link to="/blog" className="text-gray-600 hover:text-green-600 font-medium transition-colors text-sm uppercase tracking-wide">
             News
           </Link>
+          <Link to="/track" className="text-xs font-black uppercase tracking-widest hover:text-green-600 transition-all">
+  Track Filing
+</Link>
           
           <Link to="/services">
             <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-full font-bold transition-all shadow-md hover:shadow-lg text-sm">

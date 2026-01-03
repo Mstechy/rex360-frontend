@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
+const Tracking = lazy(() => import('./pages/Tracking'));
 
 // --- CORE COMPONENTS ---
 import Navbar from './components/Navbar';
@@ -69,6 +70,7 @@ function App() {
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/payment-success" element={<PaymentSuccess />} />
                 <Route path="/onboarding" element={<Onboarding />} />
+                <Route path="/track" element={<Tracking />} />
                 
                 {/* --- SECURE COMMAND NODE --- */}
                 <Route 
