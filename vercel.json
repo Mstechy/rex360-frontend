@@ -1,7 +1,17 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://rex360backend.vercel.app/api/$1" },
-    { "source": "/(.*)", "destination": "/" }
+    {
+      "source": "/api/(.*)",
+      "destination": "https://rex360backend.vercel.app/api/$1"
+    },
+    {
+      "source": "/admin/(.*)",
+      "destination": "https://rex360backend.vercel.app/admin/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
