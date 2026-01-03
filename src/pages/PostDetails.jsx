@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { motion } from 'framer-motion';
-import { Calendar, User, ArrowLeft, Share2, Printer, ShieldCheck, ChevronRight } from 'lucide-react';
+import { Calendar, User, ArrowLeft, Printer, ShieldCheck, ChevronRight } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://rex360backend.vercel.app/api';
 
@@ -10,67 +10,128 @@ const PostDetails = () => {
   const { id } = useParams();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
     const fetchPost = async () => {
       try {
-        const res = await axios.get(`${API_URL}/posts/${id}`);
-        if (res.data) setPost(res.data);
-      } catch (err) { 
-        console.error("Fetch error:", err); 
+        // We use a clean template literal for the URL to avoid formatting bugs
+        const response = await axios.get(`${API_URL}/posts/${id}`);
+        if (response.data) {
+          setPost(response.data);
+        }
+      } catch (err) {
+        console.error("Pro-Level Debug:", err.response?.status === 404 ? "Post missing in DB" : "Connection Error");
       } finally {
         setLoading(false);
       }
     };
-    fetchPost();
+    if (id) fetchPost();
   }, [id]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold">Verifying Documents...</div>;
-  if (!post) return <div className="min-h-screen flex items-center justify-center font-bold">Notice not found.</div>;
+  // Hydration Guard: Prevents Error #418
+  if (!isClient) return null;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Authenticating Resource...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!post) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
+        <h2 className="text-2xl font-bold text-slate-900 mb-2">Notice Not Found</h2>
+        <p className="text-slate-500 mb-6">The document ID provided does not exist in our regulatory database.</p>
+        <Link to="/blog" className="bg-green-600 text-white px-6 py-2 rounded-lg font-bold">Return to Registry</Link>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white min-h-screen pb-20 selection:bg-green-100">
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }}
+      className="bg-white min-h-screen pb-20 selection:bg-green-100"
+    >
+      {/* Breadcrumb Navigation */}
       <div className="bg-slate-50 border-b border-slate-200">
         <div className="container mx-auto px-6 py-4 flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
           <Link to="/" className="hover:text-green-700">Home</Link> <ChevronRight size={12} /> 
-          <Link to="/blog" className="hover:text-green-700">News</Link> <ChevronRight size={12} /> 
+          <Link to="/blog" className="hover:text-green-700">Press</Link> <ChevronRight size={12} /> 
           <span className="text-slate-900 truncate max-w-[200px]">{post.title}</span>
         </div>
       </div>
+
       <div className="container mx-auto px-6 py-12">
-        <div className="max-w-5xl mx-auto flex flex-col lg:flex-row gap-12">
+        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-12">
+          {/* Main Content Area */}
           <div className="lg:w-2/3">
-            <header className="mb-10 text-center md:text-left">
-              <h1 className="text-3xl md:text-5xl font-extrabold text-slate-900 leading-tight uppercase mb-6">{post.title}</h1>
-              <div className="flex flex-wrap items-center gap-4 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] border-y border-slate-100 py-4">
-                 <div className="flex items-center gap-2"><Calendar size={14} className="text-green-600"/> {new Date(post.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div> 
-                 <span>|</span> <div className="flex items-center gap-2"><User size={14} className="text-green-600"/> Management</div>
+            <header className="mb-10">
+              <h1 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight uppercase mb-6">
+                {post.title}
+              </h1>
+              
+              <div className="flex flex-wrap items-center gap-6 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] border-y border-slate-100 py-6">
+                 <div className="flex items-center gap-2">
+                    <Calendar size={14} className="text-green-600"/> 
+                    {new Date(post.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'long', year: 'numeric' })}
+                 </div> 
+                 <div className="flex items-center gap-2">
+                    <User size={14} className="text-green-600"/> Verified Management
+                 </div>
               </div>
             </header>
-            <div className="prose prose-lg max-w-none text-slate-700 leading-relaxed">
-              <div className="whitespace-pre-wrap text-lg italic text-slate-500 mb-8 border-l-4 border-green-600 pl-6">{post.excerpt}</div>
-              <div className="whitespace-pre-wrap">{post.content || "Full regulatory details are available for review. Contact REX360 helpdesk for clarification."}</div>
-              <div className="mt-20 pt-10 border-t-2 border-slate-100 bg-slate-50 p-8 rounded-2xl">
-                 <p className="text-slate-900 font-bold mb-1">Signed:</p>
-                 <p className="text-green-700 font-black text-2xl uppercase tracking-tighter">Management</p>
-                 <p className="text-slate-400 text-[10px] font-bold mt-2 uppercase">REX360 SOLUTIONS LTD • Accredited CAC Registration Agent • RC 142280</p>
+
+            <article className="prose prose-slate lg:prose-xl max-w-none">
+              <div className="text-xl font-medium text-slate-600 mb-8 leading-relaxed border-l-4 border-green-600 pl-6 py-2 italic">
+                {post.excerpt}
               </div>
+              <div className="text-slate-800 leading-loose whitespace-pre-wrap">
+                {post.content}
+              </div>
+            </article>
+
+            <div className="mt-16 p-8 bg-slate-50 rounded-2xl border border-slate-100">
+              <p className="text-slate-500 font-bold text-xs uppercase mb-4">Official Endorsement</p>
+              <p className="text-green-700 font-black text-3xl uppercase tracking-tighter italic">REX360 Solutions</p>
+              <p className="text-slate-400 text-[10px] font-bold mt-2 uppercase">
+                Accredited CAC Agent • RC: 142280 • Corporate Compliance Division
+              </p>
             </div>
           </div>
-          <aside className="lg:w-1/3 space-y-8">
-            <div className="bg-slate-900 rounded-3xl p-8 text-white shadow-2xl">
-              <ShieldCheck className="text-green-500 mb-4" size={32} />
-              <h3 className="text-xl font-bold mb-4">Regulatory Assistance</h3>
-              <p className="text-slate-400 text-sm mb-6">Need priority processing for this update? Consult our accredited agents.</p>
-              <Link to="/services" className="block text-center bg-green-600 text-white font-bold py-3 rounded-xl transition-all hover:bg-green-500">Consult Now</Link>
+
+          {/* Sidebar */}
+          <aside className="lg:w-1/3">
+            <div className="sticky top-8 space-y-6">
+              <div className="bg-slate-900 rounded-3xl p-8 text-white shadow-xl">
+                <ShieldCheck className="text-green-500 mb-4" size={40} />
+                <h3 className="text-xl font-bold mb-4 uppercase tracking-tight">Public Verification</h3>
+                <p className="text-slate-400 text-sm mb-6 leading-relaxed">
+                  This notice is an official publication of REX360 Solutions. For legal confirmation, contact our compliance desk.
+                </p>
+                <Link to="/contact" className="block w-full text-center bg-green-600 py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-green-500 transition-all">
+                  Verify Status
+                </Link>
+              </div>
+              
+              <button 
+                onClick={() => window.print()}
+                className="w-full flex items-center justify-center gap-3 p-4 bg-white border-2 border-slate-100 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 transition-all"
+              >
+                <Printer size={20} /> Print Document
+              </button>
             </div>
-            <button onClick={() => window.print()} className="w-full flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors font-bold text-slate-600">
-               <span>Print Official Notice</span> <Printer size={18} />
-            </button>
           </aside>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
