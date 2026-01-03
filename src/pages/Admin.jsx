@@ -1,9 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase'; 
-import { FaTrash, FaSignOutAlt, FaMoneyBillWave, FaImages, FaNewspaper, FaUpload, FaShoppingCart } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  FaTrash, FaSignOutAlt, FaMoneyBillWave, FaImages, 
+  FaNewspaper, FaUpload, FaShoppingCart, FaShieldAlt,
+  FaSync, FaCheckCircle, FaExclamationTriangle, FaPlus
+} from 'react-icons/fa';
 
+// --- ARCHITECT CONFIG: CENTRALIZED SYNC ---
 const API_URL = import.meta.env.VITE_API_URL || 'https://rex360backend.vercel.app/api';
 const ADMIN_EMAIL = 'rex360solutions@gmail.com'; 
 
@@ -15,240 +21,274 @@ const Admin = () => {
   const [isVerifying, setIsVerifying] = useState(true); 
   const [isAuthorized, setIsAuthorized] = useState(false); 
 
-  const [services, setServices] = useState([]);
-  const [slides, setSlides] = useState([]);
-  const [posts, setPosts] = useState([]);
-
-  const [slideFile, setSlideFile] = useState(null);
-  const [slideSection, setSlideSection] = useState('hero'); 
-  const [postForm, setPostForm] = useState({ title: '', excerpt: '', category: 'Business', media: null });
+  // COMPREHENSIVE DATA STORE
+  const [data, setData] = useState({ services: [], slides: [], posts: [] });
+  const [slideForm, setSlideForm] = useState({ file: null, section: 'hero' });
   const [editingService, setEditingService] = useState(null);
-  const [apiError, setApiError] = useState(null);
 
-  useEffect(() => {
-    const verifyAdminAccess = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user?.email === ADMIN_EMAIL) {
-          setIsAuthorized(true);
-        } else {
-          navigate('/login', { replace: true });
-        }
-        setIsVerifying(false);
-      } catch (err) { navigate('/login', { replace: true }); }
-    };
-    verifyAdminAccess();
+  // --- 1. SESSION ARCHITECTURE: STRICT SECURITY ---
+  const verifyAccess = useCallback(async () => {
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error || !session || session.user.email !== ADMIN_EMAIL) {
+        throw new Error("Unauthorized");
+      }
+      setIsAuthorized(true);
+    } catch (err) {
+      navigate('/login', { replace: true });
+    } finally {
+      setIsVerifying(false);
+    }
   }, [navigate]);
 
-  useEffect(() => { if (isAuthorized) fetchData(); }, [activeTab, isAuthorized]);
+  useEffect(() => { verifyAccess(); }, [verifyAccess]);
 
-  const getAuthHeaders = async (isUpload = false) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return null;
-    return {
-      headers: {
-        'Authorization': `Bearer ${session.access_token}`,
-        'Content-Type': isUpload ? 'multipart/form-data' : 'application/json'
-      }
-    };
-  };
-
-  async function fetchData() {
+  // --- 2. DATA ORCHESTRATION: PARALLEL SYNC ---
+  const syncSystem = useCallback(async () => {
+    if (!isAuthorized) return;
     setLoading(true);
     try {
-      const endpoint = activeTab === 'content' ? 'slides' : (activeTab === 'blog' ? 'posts' : 'services');
-      const res = await axios.get(`${API_URL}/${endpoint}`);
-      if (activeTab === 'services') setServices(res.data || []);
-      else if (activeTab === 'content') setSlides(res.data || []);
-      else if (activeTab === 'blog') setPosts(res.data || []);
-    } catch (error) { setApiError("Backend Sync Error"); }
-    setLoading(false);
-  }
+      // Fetch all administrative nodes simultaneously
+      const [serRes, sliRes, posRes] = await Promise.all([
+        axios.get(`${API_URL}/services`),
+        axios.get(`${API_URL}/slides`),
+        axios.get(`${API_URL}/posts`)
+      ]);
 
-  const notify = (msg) => { setNotification(msg); setTimeout(() => setNotification(null), 3000); };
+      setData({
+        services: serRes.data || [],
+        slides: sliRes.data || [],
+        posts: posRes.data || []
+      });
+    } catch (error) {
+      console.error("[ARCHITECT MONITOR]: Sync Failed", error);
+      notify("System Out of Sync", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [isAuthorized]);
 
-  const saveServicePrice = async (id, newPrice, oldPrice) => {
-    try {
-      const config = await getAuthHeaders();
-      if (!config) throw new Error("Session expired");
-      await axios.put(`${API_URL}/services/${id}`, { price: newPrice, original_price: oldPrice }, config);
-      notify("Price updated!"); setEditingService(null); fetchData();
-    } catch (err) { alert("Save failed: Verify your session"); }
+  useEffect(() => { syncSystem(); }, [syncSystem]);
+
+  // --- 3. UI NOTIFICATION ARCHITECT ---
+  const notify = (msg, type = 'success') => {
+    setNotification({ msg, type });
+    setTimeout(() => setNotification(null), 4000);
   };
 
-  const uploadImage = async () => {
-    if (!slideFile) return alert("Select an image first");
+  // --- 4. ACTION CONTROLLERS: ATOMIC UPDATES ---
+  const updatePricing = async (id, payload) => {
+    setLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      await axios.put(`${API_URL}/services/${id}`, payload, {
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      });
+      notify("Financials Updated");
+      setEditingService(null);
+      syncSystem();
+    } catch (err) {
+      notify("Update Blocked", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const commitAsset = async () => {
+    if (!slideForm.file) return notify("No Asset Selected", "error");
     const formData = new FormData();
-    formData.append('image', slideFile); 
-    formData.append('section', slideSection); 
+    formData.append('image', slideForm.file);
+    formData.append('section', slideForm.section);
+
     setLoading(true);
     try {
-      const config = await getAuthHeaders(true);
-      if (!config) throw new Error("Session expired");
-      await axios.post(`${API_URL}/slides`, formData, config);
-      notify("Image Uploaded!"); setSlideFile(null); fetchData();
-    } catch (err) { alert("Upload failed: Verify your session"); }
-    setLoading(false);
+      const { data: { session } } = await supabase.auth.getSession();
+      await axios.post(`${API_URL}/slides`, formData, {
+        headers: { 
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'multipart/form-data' 
+        }
+      });
+      notify("Creative Content Synced");
+      setSlideForm({ file: null, section: 'hero' });
+      syncSystem();
+    } catch (err) { notify("Upload Collision", "error"); }
+    finally { setLoading(false); }
   };
 
-  const deleteItem = async (endpoint, id) => {
-    if(!window.confirm("Are you sure?")) return;
-    try { 
-      const config = await getAuthHeaders();
-      if (!config) throw new Error("Session expired");
-      const target = endpoint === 'content' ? 'slides' : (endpoint === 'blog' ? 'posts' : 'services');
-      await axios.delete(`${API_URL}/${target}/${id}`, config); 
-      notify("Deleted successfully!");
-      fetchData(); 
-    } catch(err) { alert("Delete failed - Verify your session or check Vercel logs."); }
-  };
-
-  const createPost = async (e) => {
-    e.preventDefault();
-    const formData = new FormData();
-    formData.append('title', postForm.title);
-    formData.append('excerpt', postForm.excerpt);
-    formData.append('category', postForm.category);
-    if (postForm.media) formData.append('media', postForm.media); 
-
-    setLoading(true);
-    try { 
-      const config = await getAuthHeaders(true);
-      if (!config) throw new Error("Session expired");
-      await axios.post(`${API_URL}/posts`, formData, config); 
-      notify("Post Published!"); 
-      setPostForm({ title: '', excerpt: '', category: 'Business', media: null });
-      fetchData(); 
-    } catch (err) { alert("Post failed: Verify your session"); }
-    setLoading(false);
-  };
-
-  const handleLogout = async () => { await supabase.auth.signOut(); navigate('/login'); };
-
-  if (isVerifying) return <div className="min-h-screen flex items-center justify-center font-bold">🔐 Verifying Admin...</div>;
+  if (isVerifying) return (
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center">
+      <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}>
+        <FaShieldAlt className="text-green-500 text-5xl" />
+      </motion.div>
+      <p className="text-white mt-8 font-black uppercase tracking-[0.4em] text-[10px]">Verifying Protocol...</p>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans text-gray-800 pb-20">
-      <div className="bg-white shadow px-6 py-4 flex justify-between items-center sticky top-0 z-30">
-        <h1 className="text-xl font-bold">REX360 Admin</h1>
-        <button onClick={handleLogout} className="text-red-600 font-bold flex items-center gap-2 text-sm"><FaSignOutAlt /> Logout</button>
-      </div>
+    <div className="min-h-screen bg-[#F1F3F6] text-slate-900 selection:bg-green-600 selection:text-white pb-20">
+      
+      {/* --- COMMAND HEADER --- */}
+      <nav className="bg-white border-b border-slate-200 px-10 py-6 flex justify-between items-center sticky top-0 z-50">
+        <div className="flex items-center gap-4">
+          <div className="bg-slate-950 p-3 rounded-2xl text-white shadow-xl">
+            <FaShieldAlt size={20} />
+          </div>
+          <div>
+            <h1 className="font-black uppercase tracking-tighter text-xl leading-none">REX360 <span className="text-green-600">Admin</span></h1>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Accredited Agent Command</p>
+          </div>
+        </div>
+        <button onClick={() => supabase.auth.signOut().then(() => navigate('/login'))} className="group flex items-center gap-3 px-6 py-3 rounded-full border border-slate-100 hover:bg-red-50 transition-all">
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 group-hover:text-red-600">Exit System</span>
+          <FaSignOutAlt className="text-slate-300 group-hover:text-red-600" />
+        </button>
+      </nav>
 
-      {notification && <div className="fixed top-20 right-5 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-50 animate-bounce">{notification}</div>}
+      {/* --- HUD NOTIFICATIONS --- */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div 
+            initial={{ y: -100, x: "-50%", opacity: 0 }} 
+            animate={{ y: 20, x: "-50%", opacity: 1 }} 
+            exit={{ y: -100, x: "-50%", opacity: 0 }}
+            className={`fixed top-20 left-1/2 z-[100] px-10 py-5 rounded-[2rem] shadow-2xl flex items-center gap-4 font-black text-xs uppercase tracking-widest ${notification.type === 'error' ? 'bg-red-600 text-white' : 'bg-slate-950 text-white'}`}
+          >
+            {notification.type === 'error' ? <FaExclamationTriangle /> : <FaCheckCircle className="text-green-500" />}
+            {notification.msg}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="flex flex-wrap gap-3 mb-8">
+      <main className="container mx-auto px-10 py-16 max-w-7xl">
+        
+        {/* --- NAVIGATION HUD --- */}
+        <div className="flex flex-wrap items-center gap-4 mb-16">
           {[
-            { id: 'services', icon: FaMoneyBillWave, label: 'Prices & Services' },
-            { id: 'content', icon: FaImages, label: 'Website Images' },
-            { id: 'blog', icon: FaNewspaper, label: 'News & Blog' }
+            { id: 'services', icon: FaMoneyBillWave, label: 'Financials' },
+            { id: 'content', icon: FaImages, label: 'Creative' },
+            { id: 'blog', icon: FaNewspaper, label: 'Editorial' }
           ].map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-5 py-3 rounded-xl font-bold flex items-center gap-2 ${activeTab === tab.id ? 'bg-gray-900 text-white shadow-lg' : 'bg-white text-gray-500 shadow-sm border'}`}>
-              <tab.icon /> {tab.label}
+            <button 
+              key={tab.id} onClick={() => setActiveTab(tab.id)} 
+              className={`px-10 py-5 rounded-3xl font-black uppercase text-[10px] tracking-[0.3em] transition-all flex items-center gap-4 ${activeTab === tab.id ? 'bg-slate-950 text-white shadow-2xl scale-105' : 'bg-white text-slate-400 border border-slate-200 hover:bg-slate-50'}`}
+            >
+              <tab.icon size={14} /> {tab.label}
             </button>
           ))}
+          <button onClick={syncSystem} className="ml-auto w-14 h-14 bg-white border border-slate-200 rounded-3xl flex items-center justify-center text-slate-400 hover:text-green-600 transition-all">
+            <FaSync className={loading ? 'animate-spin' : ''} />
+          </button>
         </div>
 
-        {activeTab === 'services' && (
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <h2 className="text-lg font-bold mb-6 flex justify-between items-center">
-               <span>Service Price List</span>
-               <span className="text-xs text-blue-600 font-normal">Course Flow: Paystack Active</span>
-            </h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              {services.map((s) => (
-                <div key={s.id} className="border p-4 rounded-xl flex flex-col gap-3 bg-gray-50">
-                  <div className="flex justify-between items-start">
-                    <span className="font-bold text-gray-700">{s.title}</span>
-                    <FaShoppingCart className="text-gray-300" title="Course Flow Enabled" />
-                  </div>
-                  {editingService === s.id ? (
-                    <div className="flex flex-col gap-2">
-                      <div className="flex gap-2">
-                        <input type="text" id={`p-${s.id}`} defaultValue={s.price} className="border p-2 w-full rounded" />
-                        <input type="text" id={`op-${s.id}`} defaultValue={s.original_price} className="border p-2 w-full rounded" placeholder="Strike Price" />
-                      </div>
-                      <button onClick={() => saveServicePrice(s.id, document.getElementById(`p-${s.id}`).value, document.getElementById(`op-${s.id}`).value)} className="bg-green-600 text-white py-2 rounded font-bold">Save</button>
-                    </div>
-                  ) : (
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        <span className="text-green-700 font-bold bg-green-100 px-3 py-1 rounded-full text-sm">{s.price}</span>
-                        {s.original_price && <span className="text-gray-400 line-through text-xs font-medium">{s.original_price}</span>}
-                      </div>
-                      <div className="flex gap-4">
-                         <button onClick={() => setEditingService(s.id)} className="text-blue-600 text-sm underline font-semibold">Edit Price</button>
-                         <button onClick={() => deleteItem('services', s.id)} className="text-red-500"><FaTrash /></button>
-                      </div>
-                    </div>
-                  )}
+        <motion.div 
+          key={activeTab}
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          className="grid gap-10"
+        >
+          {/* --- FINANCIALS HUB --- */}
+          {activeTab === 'services' && (
+            <div className="bg-white rounded-[3.5rem] p-16 shadow-sm border border-slate-100">
+              <div className="flex justify-between items-end mb-16">
+                <div>
+                  <h2 className="text-4xl font-black uppercase tracking-tighter mb-2 text-slate-950">Revenue Nodes</h2>
+                  <p className="text-slate-400 font-bold text-xs uppercase tracking-widest italic">Connected to Paystack Gateway</p>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+                <div className="px-6 py-2 bg-green-100 text-green-700 rounded-full font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" /> Live System
+                </div>
+              </div>
 
-        {activeTab === 'content' && (
-          <div className="space-y-8">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <h2 className="text-lg font-bold mb-6 flex items-center gap-2"><FaUpload/> Upload Manager</h2>
-              <div className="grid md:grid-cols-12 gap-4 items-end">
-                <div className="md:col-span-4">
-                  <select className="w-full border p-3 rounded-lg bg-gray-50" value={slideSection} onChange={(e) => setSlideSection(e.target.value)}>
-                    <option value="hero">Home Slider</option>
-                    <option value="certificate">Certificate Image</option>
-                    <option value="agent">Agent Picture</option>
-                  </select>
-                </div>
-                <div className="md:col-span-6"><input type="file" onChange={(e) => setSlideFile(e.target.files[0])} className="w-full border p-2.5 rounded-lg bg-gray-50" /></div>
-                <div className="md:col-span-2"><button onClick={uploadImage} disabled={loading} className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg">Upload</button></div>
+              <div className="grid md:grid-cols-2 gap-8">
+                {data.services.map(s => (
+                  <div key={s.id} className="p-10 rounded-[2.5rem] bg-slate-50 border border-slate-100 hover:border-green-500/20 transition-all group">
+                    <div className="flex justify-between items-start mb-8">
+                      <h3 className="font-black uppercase text-sm tracking-tight text-slate-800">{s.title}</h3>
+                      <FaShoppingCart size={20} className="text-slate-200 group-hover:text-green-500 transition-colors" />
+                    </div>
+
+                    {editingService === s.id ? (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <input id={`p-${s.id}`} defaultValue={s.price} className="bg-white border-2 border-slate-100 p-5 rounded-2xl font-black text-slate-950 focus:border-green-500 outline-none" placeholder="Rate" />
+                          <input id={`op-${s.id}`} defaultValue={s.original_price} className="bg-white border-2 border-slate-100 p-5 rounded-2xl font-black text-slate-400 focus:border-green-500 outline-none" placeholder="Strike" />
+                        </div>
+                        <button 
+                          onClick={() => updatePricing(s.id, { 
+                            price: document.getElementById(`p-${s.id}`).value, 
+                            original_price: document.getElementById(`op-${s.id}`).value 
+                          })}
+                          className="w-full bg-slate-950 text-white py-5 rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] shadow-xl"
+                        >
+                          Commit Update
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between items-center">
+                        <div className="flex flex-col">
+                          <span className="text-3xl font-black text-slate-950 tracking-tighter">₦{s.price}</span>
+                          {s.original_price && <span className="text-slate-400 line-through text-xs font-bold uppercase tracking-widest mt-1">₦{s.original_price}</span>}
+                        </div>
+                        <button onClick={() => setEditingService(s.id)} className="px-5 py-2 bg-white rounded-full text-[10px] font-black uppercase tracking-widest text-green-600 border border-slate-100 hover:bg-green-600 hover:text-white transition-all">
+                          Modify
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-               {slides.map(img => (
-                 <div key={img.id} className="border rounded-xl overflow-hidden relative shadow-sm group">
-                    <img src={img.image_url} className="w-full h-32 object-cover" />
-                    <div className="p-2 flex justify-between items-center bg-gray-50">
-                       <span className="text-[10px] font-bold uppercase text-blue-600">{img.section}</span>
-                       <button onClick={() => deleteItem('content', img.id)} className="text-red-500"><FaTrash/></button>
-                    </div>
-                 </div>
-               ))}
-            </div>
-          </div>
-        )}
+          )}
 
-        {activeTab === 'blog' && (
-          <div className="space-y-8">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <h2 className="text-lg font-bold mb-6 flex items-center gap-2"><FaNewspaper /> Create Blog Post</h2>
-              <form onSubmit={createPost} className="space-y-5">
-                <input type="text" required className="w-full border p-3 rounded-lg" placeholder="Post Title" value={postForm.title} onChange={(e) => setPostForm({...postForm, title: e.target.value})} />
-                <textarea required className="w-full border p-3 rounded-lg" placeholder="Post Excerpt" value={postForm.excerpt} onChange={(e) => setPostForm({...postForm, excerpt: e.target.value})} />
-                <div className="flex gap-4">
-                   <input type="file" className="w-full border p-3 rounded-lg" onChange={(e) => setPostForm({...postForm, media: e.target.files[0]})} />
-                   <select className="border p-3 rounded-lg font-bold text-sm" value={postForm.category} onChange={(e) => setPostForm({...postForm, category: e.target.value})}>
-                      <option value="Business">Business</option>
-                      <option value="CAC">CAC News</option>
-                   </select>
+          {/* --- ASSET HUB --- */}
+          {activeTab === 'content' && (
+            <div className="space-y-12">
+              <div className="bg-white p-16 rounded-[3.5rem] shadow-sm border border-slate-100">
+                <h2 className="text-4xl font-black uppercase tracking-tighter mb-12">Visual Infrastructure</h2>
+                <div className="grid md:grid-cols-12 gap-6 items-end">
+                  <div className="md:col-span-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 block">Deployment Zone</label>
+                    <select className="w-full bg-slate-50 border border-slate-100 p-5 rounded-2xl font-black text-xs uppercase" value={slideForm.section} onChange={(e) => setSlideForm({...slideForm, section: e.target.value})}>
+                      <option value="hero">Hero Interface</option>
+                      <option value="certificate">Accreditation Cert</option>
+                      <option value="agent">Agent Credentials</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-6">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 block">Source File</label>
+                    <input type="file" onChange={(e) => setSlideForm({...slideForm, file: e.target.files[0]})} className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-[10px] font-bold uppercase" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <button onClick={commitAsset} className="w-full h-[62px] bg-green-600 text-white font-black uppercase text-[10px] tracking-[0.3em] rounded-2xl hover:bg-slate-950 transition-all shadow-xl shadow-green-600/20">
+                      Upload
+                    </button>
+                  </div>
                 </div>
-                <button type="submit" disabled={loading} className="w-full bg-blue-950 text-white font-bold py-3 rounded-lg">Publish Post</button>
-              </form>
-            </div>
-            <div className="space-y-3">
-               {posts.map(post => (
-                 <div key={post.id} className="bg-white p-4 rounded-xl border flex justify-between items-center shadow-sm">
-                    <div className="flex items-center gap-4">
-                       {post.media_url && <img src={post.media_url} className="w-10 h-10 rounded object-cover shadow-sm" />}
-                       <span className="font-bold text-sm">{post.title}</span>
+              </div>
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+                {data.slides.map(img => (
+                  <div key={img.id} className="bg-white p-4 rounded-[2.5rem] border border-slate-100 shadow-sm group relative overflow-hidden">
+                    <div className="aspect-square bg-slate-100 rounded-[1.8rem] overflow-hidden mb-4">
+                      <img src={img.image_url} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" />
                     </div>
-                    <button onClick={() => deleteItem('blog', post.id)} className="text-red-500"><FaTrash /></button>
-                 </div>
-               ))}
+                    <div className="flex justify-between items-center px-2">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{img.section}</span>
+                      <button className="w-8 h-8 rounded-full bg-slate-50 text-slate-300 hover:bg-red-50 hover:text-red-600 transition-all flex items-center justify-center">
+                        <FaTrash size={12} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <div className="border-4 border-dashed border-slate-200 rounded-[2.5rem] flex flex-col items-center justify-center text-slate-200 hover:border-green-200 hover:text-green-200 transition-all cursor-pointer">
+                  <FaPlus size={30} />
+                  <span className="text-[10px] font-black uppercase tracking-widest mt-4">New Asset</span>
+                </div>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </motion.div>
+      </main>
     </div>
   );
 };

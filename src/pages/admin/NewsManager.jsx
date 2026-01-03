@@ -1,11 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Trash2, Plus, Loader2, Video, Newspaper, 
-  UploadCloud, X, Image as ImageIcon, CheckCircle2 
+  UploadCloud, X, Image as ImageIcon, CheckCircle2,
+  AlertCircle, FileText, Globe
 } from 'lucide-react';
+import axios from 'axios';
+import { supabase } from '../supabase';
 
-const API_URL = "http://localhost:5000/api";
+// --- PRO-MEASURE: UNIFIED API BRIDGE ---
+const API_URL = import.meta.env.VITE_API_URL || "https://rex360backend.vercel.app/api";
 
 export default function NewsManager() {
   const [posts, setPosts] = useState([]);
@@ -15,35 +19,37 @@ export default function NewsManager() {
     title: '', excerpt: '', category: 'CAC News', media: null
   });
 
-  // 1. Load Posts
-  const fetchPosts = () => {
-    fetch(`${API_URL}/posts`)
-      .then(res => res.json())
-      .then(setPosts)
-      .catch(console.error);
-  };
+  // 1. DATA ORCHESTRATION: FETCHING
+  const fetchPosts = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API_URL}/posts`);
+      setPosts(res.data || []);
+    } catch (err) {
+      console.error("[ARCHITECT MONITOR]: News Fetch Failed", err);
+    }
+  }, []);
 
-  useEffect(() => { fetchPosts(); }, []);
+  useEffect(() => { fetchPosts(); }, [fetchPosts]);
 
-  // 2. Handle File Selection
+  // 2. MEDIA HANDLING: PREVIEW ARCHITECT
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      if (file.size > 50 * 1024 * 1024) return alert("File exceeds 50MB limit");
       setFormData({ ...formData, media: file });
       setPreview(URL.createObjectURL(file));
     }
   };
 
-  // 3. Clear File
   const clearFile = () => {
     setFormData({ ...formData, media: null });
     setPreview(null);
   };
 
-  // 4. Submit Logic
+  // 3. EXECUTION LOGIC: SECURE PUBLISHING
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if(!formData.media) return alert("Please select an image or video");
+    if(!formData.media) return alert("Editorial requirement: Please attach featured media.");
     
     setLoading(true);
     const data = new FormData();
@@ -53,217 +59,161 @@ export default function NewsManager() {
     data.append('media', formData.media);
 
     try {
-      const res = await fetch(`${API_URL}/posts`, { method: 'POST', body: data });
-      const result = await res.json();
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await axios.post(`${API_URL}/posts`, data, {
+        headers: { 
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'multipart/form-data' 
+        }
+      });
 
-      if(res.ok) {
-        alert("✅ News Posted Successfully!");
+      if(res.status === 200 || res.status === 201) {
         setFormData({ title: '', excerpt: '', category: 'CAC News', media: null });
         setPreview(null);
         fetchPosts(); 
-      } else {
-        alert("❌ Failed: " + (result.error || "Unknown Error")); 
       }
     } catch (err) {
-      alert("❌ Network Error: " + err.message);
+      alert("System Collision: " + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);
     }
   };
 
-  // 5. Delete Logic
   const handleDelete = async (id) => {
-    if(!window.confirm("Delete this post?")) return;
-    await fetch(`${API_URL}/posts/${id}`, { method: 'DELETE' });
-    fetchPosts();
+    if(!window.confirm("Archive this intelligence from public view?")) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      await axios.delete(`${API_URL}/posts/${id}`, {
+        headers: { Authorization: `Bearer ${session?.access_token}` }
+      });
+      fetchPosts();
+    } catch (err) { alert("Deletion Blocked"); }
   };
 
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mt-6 font-sans">
+    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden font-sans">
       
-      {/* HEADER */}
-      <div className="flex items-center gap-3 mb-8 pb-4 border-b border-gray-100">
-        <div className="bg-blue-50 p-3 rounded-xl text-theme-blue">
-            <Newspaper size={24}/>
+      {/* HEADER: EDITORIAL BRANDING */}
+      <div className="bg-slate-50 px-10 py-8 flex items-center justify-between border-b border-slate-100">
+        <div className="flex items-center gap-5">
+            <div className="bg-slate-900 p-4 rounded-2xl text-white shadow-lg">
+                <Newspaper size={24}/>
+            </div>
+            <div>
+                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Editorial Bureau</h2>
+                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Intelligence Distribution Center</p>
+            </div>
         </div>
-        <div>
-            <h2 className="text-xl font-bold text-gray-800">News & Blog Manager</h2>
-            <p className="text-gray-400 text-sm">Create updates for your clients.</p>
+        <div className="px-4 py-2 bg-white rounded-full border border-slate-200 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            {posts.length} Dispatches Published
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-12 gap-8">
+      <div className="grid lg:grid-cols-12 gap-0">
         
-        {/* --- LEFT: CREATE POST FORM --- */}
-        <div className="lg:col-span-7">
-            <form onSubmit={handleSubmit} className="bg-gray-50 p-6 rounded-2xl border border-gray-200">
+        {/* --- LEFT: ARCHITECTURAL COMPOSITION --- */}
+        <div className="lg:col-span-7 p-10 border-r border-slate-100">
+            <form onSubmit={handleSubmit} className="space-y-8">
                 
-                {/* Inputs Row */}
-                <div className="grid md:grid-cols-2 gap-4 mb-4">
-                    <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-500 uppercase">Title</label>
+                <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Bulletin Title</label>
                         <input 
-                            required placeholder="e.g., New CAC Rules 2025" 
-                            className="w-full p-3 rounded-xl border border-gray-200 focus:border-theme-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                            required placeholder="Headline..." 
+                            className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 focus:bg-white focus:border-green-500 outline-none transition-all font-bold text-sm"
                             value={formData.title}
                             onChange={e => setFormData({...formData, title: e.target.value})}
                         />
                     </div>
-                    <div className="space-y-1">
-                        <label className="text-xs font-bold text-gray-500 uppercase">Category</label>
+                    <div className="space-y-3">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Classification</label>
                         <select 
-                            className="w-full p-3 rounded-xl border border-gray-200 focus:border-theme-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all bg-white"
+                            className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 focus:bg-white focus:border-green-500 outline-none transition-all font-bold text-sm"
                             value={formData.category}
                             onChange={e => setFormData({...formData, category: e.target.value})}
                         >
                             <option>CAC News</option>
                             <option>Business Tips</option>
-                            <option>Tutorials</option>
+                            <option>Regulatory Tutorials</option>
                         </select>
                     </div>
                 </div>
                 
-                {/* Excerpt */}
-                <div className="mb-6 space-y-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase">Short Summary</label>
+                <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Executive Summary</label>
                     <textarea 
-                        required placeholder="Write a short summary of the update..." 
-                        className="w-full p-3 rounded-xl border border-gray-200 focus:border-theme-blue focus:ring-2 focus:ring-blue-100 outline-none transition-all h-28 resize-none"
+                        required placeholder="Condensed overview for the public feed..." 
+                        className="w-full p-5 rounded-3xl bg-slate-50 border border-slate-100 focus:bg-white focus:border-green-500 outline-none transition-all h-32 resize-none font-medium text-sm leading-relaxed"
                         value={formData.excerpt}
                         onChange={e => setFormData({...formData, excerpt: e.target.value})}
                     />
                 </div>
 
-                {/* --- ANIMATED UPLOAD BOX --- */}
-                <div className="mb-6">
-                    <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Featured Media</label>
-                    
+                <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Featured Evidence (Media)</label>
                     <AnimatePresence mode="wait">
                         {!preview ? (
                             <motion.label 
                                 key="upload"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                whileHover={{ scale: 1.01, borderColor: '#10B981', backgroundColor: '#ECFDF5' }}
-                                whileTap={{ scale: 0.98 }}
-                                className="border-2 border-dashed border-gray-300 rounded-2xl h-40 flex flex-col items-center justify-center cursor-pointer bg-white transition-colors group"
+                                whileHover={{ scale: 1.01 }}
+                                className="border-2 border-dashed border-slate-200 rounded-[2rem] h-48 flex flex-col items-center justify-center cursor-pointer bg-slate-50/50 hover:bg-white hover:border-green-500 transition-all group"
                             >
-                                <div className="bg-gray-100 p-3 rounded-full mb-3 group-hover:bg-green-100 group-hover:text-green-600 transition-colors">
-                                    <UploadCloud size={28} className="text-gray-400 group-hover:text-green-600"/>
-                                </div>
-                                <span className="text-sm font-bold text-gray-600">Click to upload Image or Video</span>
-                                <span className="text-xs text-gray-400 mt-1">Supports JPG, PNG, MP4</span>
-                                <input 
-                                    type="file" 
-                                    accept="image/*,video/*" 
-                                    className="hidden" 
-                                    onChange={handleFileChange}
-                                />
+                                <UploadCloud size={32} className="text-slate-300 group-hover:text-green-600 mb-3 transition-colors"/>
+                                <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Deploy Media Asset</span>
+                                <input type="file" accept="image/*,video/*" className="hidden" onChange={handleFileChange} />
                             </motion.label>
                         ) : (
-                            <motion.div 
-                                key="preview"
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                className="relative border rounded-2xl overflow-hidden h-64 bg-black flex items-center justify-center group shadow-md"
-                            >
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative rounded-[2rem] overflow-hidden h-64 bg-slate-900 shadow-2xl group">
                                 {formData.media?.type.startsWith('video') ? (
                                     <video src={preview} controls className="h-full w-full object-contain"/>
                                 ) : (
-                                    <img src={preview} alt="Preview" className="h-full w-full object-cover opacity-90"/>
+                                    <img src={preview} alt="Preview" className="h-full w-full object-cover"/>
                                 )}
-                                
-                                {/* Overlay Info */}
-                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 text-white">
-                                    <p className="text-xs font-bold truncate">{formData.media.name}</p>
-                                </div>
-
-                                {/* Remove Button */}
-                                <motion.button 
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.9 }}
-                                    onClick={clearFile}
-                                    className="absolute top-3 right-3 bg-red-500 text-white p-2 rounded-full shadow-lg hover:bg-red-600 transition z-10"
-                                >
+                                <button onClick={clearFile} className="absolute top-4 right-4 bg-red-600 text-white p-3 rounded-full shadow-xl hover:scale-110 transition-transform">
                                     <X size={16}/>
-                                </motion.button>
+                                </button>
                             </motion.div>
                         )}
                     </AnimatePresence>
                 </div>
 
-                {/* Submit Button */}
-                <motion.button 
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    disabled={loading} 
-                    className="w-full bg-theme-green text-white py-4 rounded-xl font-bold hover:bg-green-600 flex items-center justify-center gap-2 transition shadow-lg hover:shadow-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    {loading ? <Loader2 className="animate-spin"/> : <Plus size={20}/>} 
-                    {loading ? "Uploading to Server..." : "Publish Post"}
-                </motion.button>
+                <button disabled={loading} className="w-full bg-green-600 text-white py-6 rounded-2xl font-black uppercase text-xs tracking-[0.3em] hover:bg-slate-900 transition-all shadow-xl shadow-green-600/10 flex items-center justify-center gap-4">
+                    {loading ? <Loader2 className="animate-spin" size={20}/> : <Globe size={20}/>} 
+                    {loading ? "Transmitting..." : "Execute Publication"}
+                </button>
             </form>
         </div>
 
-        {/* --- RIGHT: RECENT POSTS LIST --- */}
-        <div className="lg:col-span-5">
-            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-200 h-full max-h-[700px] overflow-y-auto">
-                <h3 className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <CheckCircle2 size={14}/> Recent Updates
-                </h3>
-                
-                <div className="space-y-3">
-                    <AnimatePresence>
-                        {posts.length === 0 && (
-                            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-gray-400 text-sm text-center py-10">
-                                No posts yet. Create your first one!
-                            </motion.p>
-                        )}
-
-                        {posts.map(post => (
-                            <motion.div 
-                                key={post.id} 
-                                layout
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
-                                className="flex gap-4 p-3 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-all group"
-                            >
-                                <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 relative">
-                                    {post.media_type === 'video' ? (
-                                        <div className="w-full h-full flex items-center justify-center bg-gray-900">
-                                            <Video size={20} className="text-white"/>
-                                        </div>
-                                    ) : (
-                                        <img src={post.media_url} className="w-full h-full object-cover"/>
-                                    )}
-                                </div>
-                                
-                                <div className="flex-1 min-w-0">
-                                    <h4 className="font-bold text-gray-800 text-sm truncate">{post.title}</h4>
-                                    <p className="text-xs text-gray-500 line-clamp-2 mt-0.5">{post.excerpt}</p>
-                                    <div className="mt-2 flex justify-between items-center">
-                                        <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">
-                                            {post.category}
-                                        </span>
-                                        <button 
-                                            onClick={() => handleDelete(post.id)} 
-                                            className="text-gray-300 hover:text-red-500 transition"
-                                            title="Delete Post"
-                                        >
-                                            <Trash2 size={16}/>
-                                        </button>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
-                </div>
+        {/* --- RIGHT: THE ARCHIVE FEED --- */}
+        <div className="lg:col-span-5 p-10 bg-slate-50/50">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-8 flex items-center gap-3">
+                <CheckCircle2 size={14} className="text-green-500"/> Live Archive
+            </h3>
+            
+            <div className="space-y-4 max-h-[700px] overflow-y-auto pr-2">
+                {posts.map(post => (
+                    <motion.div key={post.id} className="flex gap-4 p-4 bg-white border border-slate-100 rounded-3xl shadow-sm group hover:shadow-md transition-all">
+                        <div className="w-20 h-20 bg-slate-100 rounded-2xl overflow-hidden flex-shrink-0 border border-slate-50">
+                            {post.media_type === 'video' ? (
+                                <div className="w-full h-full flex items-center justify-center bg-slate-950 text-white"><Video size={20}/></div>
+                            ) : (
+                                <img src={post.media_url} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"/>
+                            )}
+                        </div>
+                        
+                        <div className="flex-1 min-w-0 flex flex-col justify-between">
+                            <div>
+                                <h4 className="font-black text-slate-900 text-xs uppercase tracking-tight truncate">{post.title}</h4>
+                                <span className="text-[9px] font-black text-green-600 uppercase tracking-widest">{post.category}</span>
+                            </div>
+                            <button onClick={() => handleDelete(post.id)} className="w-fit text-slate-300 hover:text-red-500 transition-colors">
+                                <Trash2 size={16}/>
+                            </button>
+                        </div>
+                    </motion.div>
+                ))}
             </div>
         </div>
-
       </div>
     </div>
   );

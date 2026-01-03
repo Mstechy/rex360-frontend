@@ -1,171 +1,174 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { motion, AnimatePresence, useScroll, useSpring } from 'framer-motion';
 import { 
-  ShieldCheck, ArrowRight, Briefcase, Users, Globe, 
-  Stamp, Scale, Award, Send, Star, Zap, ShoppingCart, Check 
+  ShieldCheck, ArrowRight, Briefcase, Users, Globe, Stamp, 
+  Scale, Award, Send, Zap, ShoppingCart, Check, 
+  Loader2, MousePointer2, Fingerprint
 } from 'lucide-react';
 
-// --- PRO MEASURES & CONSTANTS ---
+// --- PRO-MEASURE: CENTRALIZED CONNECTION CONFIG ---
 const API_URL = import.meta.env.VITE_API_URL || 'https://rex360backend.vercel.app/api';
-const SLIDE_DURATION = 6000; // Exact timing for transitions
 
 const Home = () => {
-  // 1. STATE MANAGEMENT (Measured Initial States)
+  // State Monitoring
   const [slides, setSlides] = useState([]);
   const [services, setServices] = useState([]); 
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [certImage, setCertImage] = useState(null);
   const [loadingPayment, setLoadingPayment] = useState(null);
-  const [isMounted, setIsMounted] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
-  // 2. SCROLL DYNAMICS (The "Flowy" feel)
+  // Flow-Motion Dynamics
   const { scrollYProgress } = useScroll();
-  const scaleProgress = useSpring(scrollYProgress, { stiffness: 100, damping: 30 });
+  const smoothProgress = useSpring(scrollYProgress, { stiffness: 100, damping: 30 });
 
-  // 3. ICON MAPPING (Pro Logic)
-  const getServiceIcon = (id) => {
-    const iconMap = {
-      'biz-name': <Briefcase className="text-blue-600" size={24} />,
-      'company': <Users className="text-emerald-600" size={24} />,
-      'ngo': <Globe className="text-violet-600" size={24} />,
-      'trademark': <Stamp className="text-orange-500" size={24} />,
-      'copyright': <Scale className="text-rose-600" size={24} />,
-      'export': <Send className="text-cyan-600" size={24} />,
-    };
-    return iconMap[id] || <Award className="text-amber-500" size={24} />;
+  // 1. STRICT CONNECTION: PAYMENT ARCHITECTURE
+  const handlePurchase = async (service) => {
+    if (loadingPayment) return;
+
+    // Professional Validation
+    const userEmail = prompt("ENTER OFFICIAL EMAIL FOR REGISTRATION PORTAL:");
+    if (!userEmail || !userEmail.includes('@')) {
+      alert("Professional verification failed: A valid email is required.");
+      return;
+    }
+
+    setLoadingPayment(service.id);
+    
+    try {
+      // Direct Tunnel to Backend
+      const response = await axios.post(`${API_URL}/payments/initialize`, {
+        email: userEmail,
+        amount: service.price,
+        serviceName: service.title
+      });
+
+      if (response.data?.authorization_url) {
+        window.location.href = response.data.authorization_url;
+      } else {
+        throw new Error("Gateway Handshake Failed");
+      }
+    } catch (err) {
+      console.error("[PRO-LOG]: Connection Error", err);
+      alert("The payment gateway is currently synchronizing. Please try again in 2 minutes.");
+    } finally {
+      setLoadingPayment(null);
+    }
   };
 
-  // 4. ERROR-GUARDED DATA FETCHING
+  // 2. COMPREHENSIVE DATA SYNC
   useEffect(() => {
-    setIsMounted(true);
-    const fetchData = async () => {
+    setIsReady(true);
+    const syncSystem = async () => {
       try {
-        const [slidesRes, servicesRes] = await Promise.all([
+        const [sRes, serRes] = await Promise.all([
           axios.get(`${API_URL}/slides`).catch(() => ({ data: [] })),
           axios.get(`${API_URL}/services`).catch(() => ({ data: [] }))
         ]);
-
-        const hero = slidesRes.data.filter(s => s.section === 'hero');
-        setSlides(hero.length > 0 ? hero : [{ image_url: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80' }]);
         
-        const cert = slidesRes.data.find(s => s.section === 'certificate');
-        if (cert) setCertImage(cert.image_url);
-        
-        setServices(servicesRes.data);
+        const heroSlides = sRes.data.filter(s => s.section === 'hero');
+        setSlides(heroSlides.length > 0 ? heroSlides : [{ image_url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=2000' }]);
+        setServices(serRes.data);
       } catch (err) {
-        console.error("Critical: Home Data Sync Failed", err);
+        console.error("[PRO-LOG]: API Sync Failure", err);
       }
     };
-    fetchData();
+    syncSystem();
   }, []);
 
-  // 5. AUTO-SLIDE LOGIC (Precise Timing)
-  useEffect(() => {
-    if (slides.length <= 1) return;
-    const timer = setInterval(() => {
-      setCurrentSlide(prev => (prev + 1) % slides.length);
-    }, SLIDE_DURATION);
-    return () => clearInterval(timer);
-  }, [slides]);
-
-  // 6. HYDRATION SAFEGUARD (Prevents Error #418)
-  if (!isMounted) return null;
+  // Hydration Guard (Prevents Minified Error #418)
+  if (!isReady) return null;
 
   return (
-    <div className="relative w-full bg-white overflow-x-hidden antialiased">
+    <div className="bg-white text-slate-900 overflow-x-hidden selection:bg-green-600 selection:text-white">
       
-      {/* SECTION 1: THE IMMERSIVE HERO */}
-      <section className="relative h-[90vh] min-h-[700px] w-full flex items-center justify-center overflow-hidden bg-slate-900">
-        <AnimatePresence mode="wait">
-          {slides.map((slide, index) => index === currentSlide && (
-            <motion.div
-              key={slide.id || index}
-              initial={{ opacity: 0, scale: 1.1 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 1.2, ease: "circOut" }}
-              className="absolute inset-0"
-            >
-              <img src={slide.image_url} alt="Background" className="w-full h-full object-cover brightness-50 grayscale-[20%]" />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
-            </motion.div>
-          ))}
+      {/* --- HERO: THE BRAND IMPACT --- */}
+      <section className="relative h-screen min-h-[850px] flex items-center overflow-hidden bg-slate-950">
+        <AnimatePresence mode='wait'>
+          <motion.div
+            key={currentSlide}
+            initial={{ scale: 1.2, opacity: 0 }} 
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 2, ease: [0.19, 1, 0.22, 1] }}
+            className="absolute inset-0 z-0"
+          >
+            <img src={slides[currentSlide]?.image_url} className="w-full h-full object-cover brightness-[0.3] grayscale-[40%]" />
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/40 to-transparent" />
+          </motion.div>
         </AnimatePresence>
 
-        <div className="container relative z-10 px-6 mx-auto text-center">
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            transition={{ duration: 0.8 }}
-            className="max-w-4xl mx-auto"
-          >
-            <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 border rounded-full bg-white/5 backdrop-blur-md border-white/20">
-              <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Accredited Agent • RC 142280</span>
-            </div>
-            
-            <h1 className="text-5xl md:text-[5.5rem] font-black text-white leading-[0.9] uppercase tracking-tighter mb-8">
-              Corporate <br /> <span className="text-green-500">Excellence</span> <br /> Redefined
-            </h1>
-            
-            <p className="text-slate-300 text-lg md:text-xl max-w-xl mx-auto mb-10 font-medium">
-              Nigeria's premier portal for fast-track CAC registrations and regulatory compliance.
-            </p>
-
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Link to="/services" className="inline-flex items-center gap-4 px-10 py-5 bg-green-600 text-white rounded-full font-black uppercase text-sm tracking-widest shadow-2xl hover:bg-green-500 transition-all">
-                Launch Application <ArrowRight size={18} />
-              </Link>
+        <div className="container relative z-10 px-8 mx-auto">
+          <div className="max-w-5xl">
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-4 mb-10">
+              <span className="w-12 h-[2px] bg-green-500"></span>
+              <span className="text-green-500 font-black text-xs uppercase tracking-[0.4em]">Accredited CAC Authority • RC 142280</span>
             </motion.div>
-          </motion.div>
+
+            <h1 className="text-6xl md:text-[8.5rem] font-black text-white leading-[0.85] uppercase tracking-tighter mb-10">
+              Direct <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-500 italic font-light">Corporate</span> <br /> Access
+            </h1>
+
+            <div className="flex flex-wrap items-center gap-10 mt-16">
+              <Link to="/services" className="group relative px-14 py-7 bg-green-600 text-white font-black uppercase tracking-widest text-[11px] transition-all hover:bg-white hover:text-slate-950 rounded-full shadow-2xl overflow-hidden">
+                <span className="relative z-10 flex items-center gap-4">Start Registration <ArrowRight size={18}/></span>
+              </Link>
+              <p className="text-slate-500 max-w-xs text-sm font-bold leading-relaxed border-l border-white/20 pl-8">
+                Eliminate manual delays. We provide immediate portal access for CAC filings.
+              </p>
+            </div>
+          </div>
         </div>
+
+        {/* Dynamic Scroll Progress (Flow Component) */}
+        <motion.div style={{ scaleX: smoothProgress }} className="absolute bottom-0 left-0 right-0 h-1 bg-green-500 origin-left z-20" />
       </section>
 
-      {/* SECTION 2: THE "FLOW" GRID (Services) */}
-      <section className="py-32 bg-slate-50">
-        <div className="container mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-end justify-between mb-20 gap-8">
-            <div className="max-w-xl">
-              <h2 className="text-4xl md:text-6xl font-black text-slate-900 leading-none uppercase mb-6">Service <br /> <span className="text-green-600">Inventory</span></h2>
-              <div className="h-1.5 w-20 bg-green-600 rounded-full" />
+      {/* --- SERVICES: THE DENSE GRID --- */}
+      <section className="py-40 bg-[#f8f9fa] relative overflow-hidden">
+        {/* Subtle Decorative Flow Elements */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-green-500/5 blur-[120px] rounded-full" />
+        
+        <div className="container mx-auto px-8 relative z-10">
+          <div className="flex flex-col lg:flex-row items-end justify-between mb-24 gap-8">
+            <div className="max-w-2xl">
+              <h2 className="text-5xl md:text-7xl font-black text-slate-950 leading-none uppercase tracking-tighter">Regulatory <br /> Inventory</h2>
             </div>
-            <p className="text-slate-500 font-bold text-xs uppercase tracking-widest">Scroll to explore categories</p>
+            <div className="flex flex-col items-end">
+              <div className="text-3xl font-black text-slate-200 uppercase tracking-tighter mb-2">Tier One</div>
+              <div className="h-1 w-32 bg-green-600"></div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
             {services.map((service, idx) => (
               <motion.div 
-                key={service.id || idx}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                className="group p-10 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm hover:shadow-2xl transition-all duration-500"
+                key={idx} whileHover={{ y: -15 }}
+                className="group relative bg-white p-14 rounded-[3rem] shadow-sm hover:shadow-2xl transition-all duration-700 border border-slate-100"
               >
-                <div className="mb-8 p-4 w-fit bg-slate-50 rounded-2xl group-hover:bg-green-600 group-hover:text-white transition-colors duration-500">
-                  {getServiceIcon(service.id)}
-                </div>
-                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-4">{service.title}</h3>
-                <p className="text-slate-500 text-sm leading-relaxed mb-10 h-16 overflow-hidden">{service.description}</p>
-                
-                <div className="pt-8 border-t border-slate-50 flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block mb-1">Fee Structure</span>
-                    <div className="flex flex-col">
-                      <span className="text-2xl font-black text-slate-900">₦{service.price}</span>
-                      {service.original_price && <span className="text-xs text-slate-400 line-through">₦{service.original_price}</span>}
-                    </div>
+                <div className="relative z-10">
+                  <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 mb-10 group-hover:bg-green-600 group-hover:text-white transition-all">
+                    <Fingerprint size={28} />
                   </div>
-                  <motion.button 
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => {}} // Integration logic
-                    className="w-14 h-14 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-xl group-hover:bg-green-600 transition-colors"
-                  >
-                    <ShoppingCart size={20} />
-                  </motion.button>
+                  
+                  <h3 className="text-2xl font-black text-slate-950 uppercase tracking-tighter mb-4">{service.title}</h3>
+                  <p className="text-slate-400 text-sm leading-relaxed mb-12 h-20 overflow-hidden">{service.description}</p>
+                  
+                  <div className="flex items-center justify-between pt-10 border-t border-slate-50">
+                    <div className="flex flex-col">
+                      <span className="text-3xl font-black text-slate-950 tracking-tighter">₦{service.price}</span>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Full Compliance Fee</span>
+                    </div>
+                    
+                    <button 
+                      onClick={() => handlePurchase(service)}
+                      disabled={loadingPayment === service.id}
+                      className="w-16 h-16 rounded-full bg-slate-950 text-white flex items-center justify-center shadow-xl hover:bg-green-600 transition-all disabled:bg-slate-200"
+                    >
+                      {loadingPayment === service.id ? <Loader2 className="animate-spin" /> : <ShoppingCart size={22} />}
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -173,62 +176,17 @@ const Home = () => {
         </div>
       </section>
 
-      {/* SECTION 3: ACCREDITATION (The "Measure" of Trust) */}
-      <section className="py-32 bg-white relative">
-        <div className="container mx-auto px-6 grid lg:grid-cols-2 gap-20 items-center">
-          <motion.div 
-            initial={{ opacity: 0, x: -50 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-          >
-            <span className="inline-block text-green-600 font-black text-xs uppercase tracking-[0.4em] mb-6">Official Credentials</span>
-            <h2 className="text-4xl md:text-7xl font-black text-slate-900 leading-[0.95] uppercase mb-8">Verified <br /> CAC Presence</h2>
-            <p className="text-slate-500 text-lg mb-10 max-w-md font-medium leading-relaxed">
-              Our accreditation allows us priority access to the Corporate Affairs Commission servers, ensuring your business is registered in record time.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {['Real-time Search', 'Portal Access', 'Legal Stamping', 'Express Delivery'].map((text, i) => (
-                <div key={i} className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                  <div className="p-1 bg-green-100 text-green-700 rounded-full"><Check size={14} strokeWidth={3} /></div>
-                  <span className="font-bold text-slate-800 text-xs uppercase tracking-tight">{text}</span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
-          <div className="relative">
-            <motion.div 
-              initial={{ rotate: 5, scale: 0.9, opacity: 0 }}
-              whileInView={{ rotate: 0, scale: 1, opacity: 1 }}
-              transition={{ duration: 1, type: "spring" }}
-              className="bg-slate-900 p-4 rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.2)]"
-            >
-              <div className="bg-white rounded-[2.5rem] overflow-hidden aspect-[4/5] flex items-center justify-center">
-                {certImage ? (
-                  <img src={certImage} alt="Certificate" className="w-full h-full object-cover" />
-                ) : (
-                  <ShieldCheck size={100} className="text-slate-100 animate-pulse" />
-                )}
-              </div>
-            </motion.div>
-            {/* Design Element */}
-            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-green-500 rounded-full blur-[80px] opacity-20 -z-10" />
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 4: TRUST BAR (Strict Minimalism) */}
-      <footer className="py-20 bg-slate-900 border-t border-white/5">
-        <div className="container mx-auto px-6 text-center">
-          <p className="text-slate-500 font-black text-[10px] uppercase tracking-[0.4em] mb-12">Authorized Corporate Network</p>
-          <div className="flex flex-wrap justify-center gap-16 md:gap-32 grayscale opacity-40">
-             <div className="flex items-center gap-3 text-white font-black text-2xl tracking-tighter italic">STARTUP.NG</div>
-             <div className="flex items-center gap-3 text-white font-black text-2xl tracking-tighter italic">LAGOS.TECH</div>
-             <div className="flex items-center gap-3 text-white font-black text-2xl tracking-tighter italic">SME.HUB</div>
+      {/* --- TRUST FOOTER --- */}
+      <footer className="bg-white py-24 border-t border-slate-100">
+        <div className="container mx-auto px-8">
+          <div className="flex flex-wrap justify-center md:justify-between items-center gap-12 grayscale opacity-30 contrast-125">
+             <span className="text-3xl font-black uppercase italic tracking-tighter">Startup.NG</span>
+             <span className="text-3xl font-black uppercase italic tracking-tighter">Lagos.Tech</span>
+             <span className="text-3xl font-black uppercase italic tracking-tighter">SME.HUB</span>
+             <span className="text-3xl font-black uppercase italic tracking-tighter">Fincl.Core</span>
           </div>
         </div>
       </footer>
-
     </div>
   );
 };

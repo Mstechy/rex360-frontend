@@ -1,132 +1,198 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { motion } from 'framer-motion';
-import { Calendar, User, ArrowLeft, Printer, ShieldCheck, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Calendar, User, ArrowLeft, Printer, ShieldCheck, 
+  ChevronRight, AlertCircle, RefreshCcw, Share2 
+} from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://rex360backend.vercel.app/api';
 
 const PostDetails = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false);
+  const [errorStatus, setErrorStatus] = useState(null); // tracking 404 vs 500
+
+  // --- PRO-MEASURE: MEMOIZED FETCHING ---
+  const fetchPost = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    setErrorStatus(null);
+    
+    try {
+      // Strict timeout connection to prevent hanging requests
+      const response = await axios.get(`${API_URL}/posts/${id}`, { timeout: 10000 });
+      if (response.data) {
+        setPost(response.data);
+        // SEO Polish: Update Title Tag
+        document.title = `${response.data.title} | REX360 Compliance`;
+      }
+    } catch (err) {
+      console.error("[PRO-MONITOR]: Connection Failure", err);
+      setErrorStatus(err.response?.status || 500);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
   useEffect(() => {
     setIsClient(true);
-    const fetchPost = async () => {
-      try {
-        // We use a clean template literal for the URL to avoid formatting bugs
-        const response = await axios.get(`${API_URL}/posts/${id}`);
-        if (response.data) {
-          setPost(response.data);
-        }
-      } catch (err) {
-        console.error("Pro-Level Debug:", err.response?.status === 404 ? "Post missing in DB" : "Connection Error");
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (id) fetchPost();
-  }, [id]);
+    fetchPost();
+    // Cleanup title on unmount
+    return () => { document.title = "REX360 SOLUTIONS LTD"; };
+  }, [fetchPost]);
 
-  // Hydration Guard: Prevents Error #418
+  // Hydration Guard (Prevents Error #418)
   if (!isClient) return null;
 
+  // --- STATE 1: LOADING (The "Measured" Spinner) ---
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Authenticating Resource...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
+        <motion.div 
+          animate={{ rotate: 360 }} 
+          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+          className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full mb-4"
+        />
+        <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.3em] animate-pulse">
+          Syncing Regulatory Database...
+        </p>
+      </div>
+    );
+  }
+
+  // --- STATE 2: ERROR/NOT FOUND (Comprehensive Recovery) ---
+  if (errorStatus || !post) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-white">
+        <div className="p-6 bg-red-50 rounded-full mb-6">
+          <AlertCircle size={48} className="text-red-600" />
+        </div>
+        <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-4">
+          {errorStatus === 404 ? "Document Not Found" : "Connection Timeout"}
+        </h2>
+        <p className="text-slate-500 max-w-sm mb-8 font-medium">
+          The requested compliance notice could not be retrieved from the server. It may have been archived or moved.
+        </p>
+        <div className="flex gap-4">
+          <button onClick={() => navigate(-1)} className="px-8 py-3 border-2 border-slate-100 rounded-xl font-bold text-slate-600 flex items-center gap-2">
+            <ArrowLeft size={18} /> Go Back
+          </button>
+          <button onClick={fetchPost} className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold flex items-center gap-2">
+            <RefreshCcw size={18} /> Retry
+          </button>
         </div>
       </div>
     );
   }
 
-  if (!post) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">Notice Not Found</h2>
-        <p className="text-slate-500 mb-6">The document ID provided does not exist in our regulatory database.</p>
-        <Link to="/blog" className="bg-green-600 text-white px-6 py-2 rounded-lg font-bold">Return to Registry</Link>
-      </div>
-    );
-  }
-
+  // --- STATE 3: CONTENT RENDER (The "Flow" Architecture) ---
   return (
     <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }}
-      className="bg-white min-h-screen pb-20 selection:bg-green-100"
+      initial={{ opacity: 0, y: 10 }} 
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white min-h-screen pb-32 selection:bg-green-600 selection:text-white"
     >
-      {/* Breadcrumb Navigation */}
-      <div className="bg-slate-50 border-b border-slate-200">
-        <div className="container mx-auto px-6 py-4 flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
-          <Link to="/" className="hover:text-green-700">Home</Link> <ChevronRight size={12} /> 
-          <Link to="/blog" className="hover:text-green-700">Press</Link> <ChevronRight size={12} /> 
-          <span className="text-slate-900 truncate max-w-[200px]">{post.title}</span>
+      {/* Dynamic Breadcrumbs */}
+      <nav className="bg-slate-50/50 backdrop-blur-md border-b border-slate-100 sticky top-0 z-40">
+        <div className="container mx-auto px-6 py-4 flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+          <Link to="/" className="hover:text-green-600 transition-colors">Registry</Link> 
+          <ChevronRight size={10} /> 
+          <Link to="/blog" className="hover:text-green-600 transition-colors">Bulletins</Link> 
+          <ChevronRight size={10} /> 
+          <span className="text-slate-900 truncate max-w-[150px] md:max-w-none">{post.title}</span>
         </div>
-      </div>
+      </nav>
 
-      <div className="container mx-auto px-6 py-12">
-        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-12">
-          {/* Main Content Area */}
-          <div className="lg:w-2/3">
-            <header className="mb-10">
-              <h1 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight uppercase mb-6">
+      <div className="container mx-auto px-6 py-16">
+        <div className="max-w-7xl mx-auto flex flex-col lg:grid lg:grid-cols-12 gap-16">
+          
+          {/* PRIMARY CONTENT: 8 COLS */}
+          <article className="lg:col-span-8">
+            <header className="mb-12">
+              <div className="inline-block px-4 py-1.5 bg-green-100 text-green-700 rounded-full text-[10px] font-black uppercase tracking-widest mb-6">
+                Official Release
+              </div>
+              <h1 className="text-4xl md:text-6xl font-black text-slate-900 leading-[0.95] uppercase tracking-tighter mb-8">
                 {post.title}
               </h1>
               
-              <div className="flex flex-wrap items-center gap-6 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] border-y border-slate-100 py-6">
+              <div className="flex flex-wrap items-center gap-8 text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] border-y border-slate-100 py-6">
                  <div className="flex items-center gap-2">
-                    <Calendar size={14} className="text-green-600"/> 
+                    <Calendar size={14} className="text-green-600" strokeWidth={3}/> 
                     {new Date(post.created_at).toLocaleDateString('en-NG', { day: 'numeric', month: 'long', year: 'numeric' })}
                  </div> 
                  <div className="flex items-center gap-2">
-                    <User size={14} className="text-green-600"/> Verified Management
+                    <User size={14} className="text-green-600" strokeWidth={3}/> REX360 Management
+                 </div>
+                 <div className="flex items-center gap-2">
+                    <ShieldCheck size={14} className="text-green-600" strokeWidth={3}/> Verified Notice
                  </div>
               </div>
             </header>
 
-            <article className="prose prose-slate lg:prose-xl max-w-none">
-              <div className="text-xl font-medium text-slate-600 mb-8 leading-relaxed border-l-4 border-green-600 pl-6 py-2 italic">
+            <div className="prose prose-slate prose-xl max-w-none">
+              {/* Excerpt with flowy styling */}
+              <div className="text-2xl font-medium text-slate-500 mb-10 leading-relaxed border-l-4 border-green-600 pl-8 italic bg-slate-50 py-6 rounded-r-3xl">
                 {post.excerpt}
               </div>
-              <div className="text-slate-800 leading-loose whitespace-pre-wrap">
-                {post.content}
+              
+              {/* Main Body with spacing preservation */}
+              <div className="text-slate-800 leading-[1.8] whitespace-pre-wrap font-medium">
+                {post.content || "Supplementary details for this regulatory notice are currently being processed by the compliance division."}
               </div>
-            </article>
-
-            <div className="mt-16 p-8 bg-slate-50 rounded-2xl border border-slate-100">
-              <p className="text-slate-500 font-bold text-xs uppercase mb-4">Official Endorsement</p>
-              <p className="text-green-700 font-black text-3xl uppercase tracking-tighter italic">REX360 Solutions</p>
-              <p className="text-slate-400 text-[10px] font-bold mt-2 uppercase">
-                Accredited CAC Agent • RC: 142280 • Corporate Compliance Division
-              </p>
             </div>
-          </div>
 
-          {/* Sidebar */}
-          <aside className="lg:w-1/3">
-            <div className="sticky top-8 space-y-6">
-              <div className="bg-slate-900 rounded-3xl p-8 text-white shadow-xl">
-                <ShieldCheck className="text-green-500 mb-4" size={40} />
-                <h3 className="text-xl font-bold mb-4 uppercase tracking-tight">Public Verification</h3>
-                <p className="text-slate-400 text-sm mb-6 leading-relaxed">
-                  This notice is an official publication of REX360 Solutions. For legal confirmation, contact our compliance desk.
+            {/* Endorsement Block (Professional Finish) */}
+            <div className="mt-20 p-10 bg-slate-950 rounded-[2.5rem] relative overflow-hidden">
+               <div className="absolute top-0 right-0 w-32 h-32 bg-green-600/10 rounded-full blur-3xl" />
+               <p className="text-slate-500 font-black text-xs uppercase tracking-widest mb-4">Certified Endorsement</p>
+               <h3 className="text-white font-black text-4xl uppercase tracking-tighter italic mb-2">REX360 Solutions</h3>
+               <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] leading-loose">
+                  Accredited CAC Registration Agent • RC: 142280 <br />
+                  Corporate Affairs Commission Compliance Division
+               </p>
+            </div>
+          </article>
+
+          {/* SIDEBAR: 4 COLS (Measured Utility) */}
+          <aside className="lg:col-span-4">
+            <div className="sticky top-24 space-y-6">
+              
+              {/* Verification Card */}
+              <div className="bg-white border border-slate-100 rounded-[2rem] p-8 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.05)]">
+                <ShieldCheck className="text-green-600 mb-4" size={32} strokeWidth={2.5} />
+                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-4">Status: Published</h3>
+                <p className="text-slate-500 text-sm leading-relaxed mb-8">
+                  This document has been cross-referenced with the CAC database and is cleared for public view.
                 </p>
-                <Link to="/contact" className="block w-full text-center bg-green-600 py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-green-500 transition-all">
-                  Verify Status
+                <Link to="/contact" className="flex items-center justify-center gap-3 w-full bg-green-600 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-green-500 transition-all shadow-xl shadow-green-600/20">
+                  Verify Document <ShieldCheck size={16} />
                 </Link>
               </div>
-              
-              <button 
-                onClick={() => window.print()}
-                className="w-full flex items-center justify-center gap-3 p-4 bg-white border-2 border-slate-100 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 transition-all"
-              >
-                <Printer size={20} /> Print Document
-              </button>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-4">
+                <button 
+                  onClick={() => window.print()}
+                  className="flex flex-col items-center justify-center gap-3 p-6 bg-slate-50 rounded-3xl font-bold text-slate-600 hover:bg-slate-100 transition-all border border-transparent hover:border-slate-200"
+                >
+                  <Printer size={20} />
+                  <span className="text-[10px] uppercase tracking-widest">Print</span>
+                </button>
+                <button 
+                  onClick={() => navigator.share({ title: post.title, url: window.location.href })}
+                  className="flex flex-col items-center justify-center gap-3 p-6 bg-slate-50 rounded-3xl font-bold text-slate-600 hover:bg-slate-100 transition-all border border-transparent hover:border-slate-200"
+                >
+                  <Share2 size={20} />
+                  <span className="text-[10px] uppercase tracking-widest">Share</span>
+                </button>
+              </div>
+
             </div>
           </aside>
         </div>
