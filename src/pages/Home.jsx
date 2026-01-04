@@ -81,10 +81,10 @@ const Home = () => {
 
           const mapped = srvRes.value.data.map(s => ({
             ...s,
-            price: officialData[s.id]?.price || 0,
-            original_price: officialData[s.id]?.old || 0,
-            description: officialData[s.id]?.desc || "Authorized CAC filing node.",
-            icon: s.id === "company" ? <Building2 size={24}/> : s.id === "ngo" ? <Landmark size={24}/> : <Briefcase size={24}/>
+            price: officialData[s.service_id]?.price || 0,
+            original_price: officialData[s.service_id]?.old || 0,
+            description: officialData[s.service_id]?.desc || "Authorized CAC filing node.",
+            icon: s.service_id === "company" ? <Building2 size={24}/> : s.service_id === "ngo" ? <Landmark size={24}/> : <Briefcase size={24}/>
           }));
           setCacServices(mapped);
         }

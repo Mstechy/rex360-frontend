@@ -1,13 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Calendar, User, ArrowLeft, Printer, ShieldCheck, 
-  ChevronRight, AlertCircle, RefreshCcw, Share2 
+import {
+  Calendar, User, ArrowLeft, Printer, ShieldCheck,
+  ChevronRight, AlertCircle, RefreshCcw, Share2
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://rex360backend.vercel.app/api';
+import api from '../api';
 
 const PostDetails = () => {
   const { id } = useParams();
@@ -22,18 +21,17 @@ const PostDetails = () => {
     if (!id) return;
     setLoading(true);
     setErrorStatus(null);
-    
+
     try {
-      // Strict timeout connection to prevent hanging requests
-      const response = await axios.get(`${API_URL}/posts/${id}`, { timeout: 10000 });
-      if (response.data) {
-        setPost(response.data);
+      const data = await api.getPost(id);
+      if (data) {
+        setPost(data);
         // SEO Polish: Update Title Tag
-        document.title = `${response.data.title} | REX360 Compliance`;
+        document.title = `${data.title} | REX360 Compliance`;
       }
     } catch (err) {
       console.error("[PRO-MONITOR]: Connection Failure", err);
-      setErrorStatus(err.response?.status || 500);
+      setErrorStatus(500);
     } finally {
       setLoading(false);
     }

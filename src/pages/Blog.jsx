@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Calendar, User, ArrowRight, PlayCircle, 
-  Tag, Sparkles, Search, AlertCircle, 
+import {
+  Calendar, User, ArrowRight, PlayCircle,
+  Tag, Sparkles, Search, AlertCircle,
   Filter, Newspaper, Clock
 } from 'lucide-react';
-
-const API_BASE = import.meta.env.VITE_API_URL || "https://rex360backend.vercel.app/api";
+import api from '../api';
 
 export default function Blog() {
   const [posts, setPosts] = useState([]);
@@ -21,20 +20,13 @@ export default function Blog() {
     const fetchPosts = async () => {
       try {
         setLoading(true);
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const data = await api.getPosts();
 
-        const response = await fetch(`${API_BASE}/posts`, { signal: controller.signal });
-        clearTimeout(timeoutId);
-
-        if (!response.ok) throw new Error("REX360 Intelligence Server Unreachable");
-        const data = await response.json();
-        
         if (Array.isArray(data)) {
             setPosts(data);
         }
       } catch (err) {
-        setError(err.name === 'AbortError' ? "Connection Timeout" : err.message);
+        setError("REX360 Intelligence Server Unreachable");
       } finally {
         setLoading(false);
       }
@@ -46,8 +38,8 @@ export default function Blog() {
   const filteredPosts = useMemo(() => {
     return posts.filter(post => {
       const matchesFilter = activeFilter === 'All' || post.category === activeFilter;
-      const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            post.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            post.content.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesFilter && matchesSearch;
     });
   }, [posts, activeFilter, searchQuery]);

@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = 'https://rex360backend.vercel.app';
 
 const api = {
   // Slides
@@ -40,6 +40,7 @@ const api = {
 
   // Posts
   getPosts: () => fetch(`${API_BASE_URL}/api/posts`).then(res => res.json()),
+  getPost: (id) => fetch(`${API_BASE_URL}/api/posts/${id}`).then(res => res.json()),
   addPost: (post, token) => fetch(`${API_BASE_URL}/api/posts`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
