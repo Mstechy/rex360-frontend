@@ -3,31 +3,60 @@
 @tailwind utilities;
 
 @layer base {
-  body {
-    @apply bg-white text-slate-900 antialiased;
-    font-family: 'Inter', sans-serif; /* Clean font choice */
+  :root {
+    --brand-navy: #0a192f;
+    --brand-emerald: #10b981;
+    --text-sharp: #0f172a; /* Deep Slate-900 for maximum clarity */
   }
 
-  /* --- NORMAL CUSTOMER SCALE --- */
+  body {
+    /* Use pure white background and deep slate text for the "Legal Bureau" feel */
+    @apply bg-white text-[#0f172a] antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    
+    /* Critical: This prevents white text from looking "fuzzy" on dark backgrounds */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.6;
+  }
+
+  /* --- ARCHITECTURAL TYPOGRAPHY RHYTHM --- */
+  
   h1 {
-    @apply text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-tight; /* Controlled size */
+    /* Reduced boldness from 900 to 800 for elegance. Increased tracking-tighter for "Million Naira" feel */
+    @apply text-4xl md:text-7xl font-extrabold tracking-tighter leading-[1.1] text-[#0a192f] mb-8;
   }
 
   h2 {
-    @apply text-3xl md:text-4xl font-bold tracking-tight;
+    @apply text-3xl md:text-5xl font-extrabold tracking-tight text-[#0a192f] mb-10;
   }
 
   p {
-    @apply text-base md:text-lg text-slate-500 leading-relaxed max-w-[65ch]; /* Width limit to prevent "big" look */
+    /* Set weight to 400 (Regular) to contrast against bold headers. Darkened the color to Slate-700 for readability */
+    @apply text-base md:text-lg font-normal text-slate-700 leading-relaxed max-w-[70ch] mb-6;
+  }
+
+  /* Labels must be small, bold, and high-contrast to act as anchors */
+  label, .form-label {
+    @apply text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500 mb-2 block;
   }
 }
 
 @layer components {
+  /* REFINED ELITE BUTTON: Bold but not "chunky" */
   .btn-elite {
-    @apply px-8 py-3 bg-slate-950 text-white font-bold rounded-xl hover:bg-green-600 transition-all;
+    @apply px-10 py-4 bg-[#0a192f] text-white font-bold uppercase text-[10px] tracking-[0.25em] 
+           rounded-xl hover:bg-[#10b981] transition-all duration-500 shadow-lg shadow-emerald-500/10;
   }
   
+  /* REFINED ELITE CARD: Generous padding prevents the "scanty" feel */
   .card-elite {
-    @apply bg-white p-8 rounded-3xl border border-slate-200 shadow-sm transition-all;
+    @apply bg-white p-12 rounded-[3rem] border border-slate-100 shadow-2xl shadow-slate-200/40 
+           hover:border-[#10b981]/30 transition-all duration-700;
   }
+}
+
+/* FIX: Faint text on Navy backgrounds */
+.dark-section p {
+  @apply text-slate-300 font-medium; /* Slate-300 passes contrast tests on Navy backgrounds */
 }

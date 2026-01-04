@@ -2,21 +2,21 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Phone, ShieldCheck, MapPin, Mail, 
-  ArrowUpRight, Facebook, Twitter, Instagram, Linkedin, Zap
+  ArrowUpRight, Facebook, Twitter, Instagram, Linkedin 
 } from 'lucide-react';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-slate-950 text-slate-400 py-24 border-t border-white/5 relative overflow-hidden">
-      {/* Cinematic Background Gradient */}
+    <footer className="bg-slate-950 text-slate-400 py-32 border-t border-white/5 relative overflow-hidden">
+      {/* Cinematic Architectural Background Element */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[120px] -mr-40 -mt-40 pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-8 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-16 mb-24">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-20 mb-24">
           
-          {/* COLUMN 1: AGENCY IDENTITY */}
+          {/* COLUMN 1: AGENCY IDENTITY & AUTHORITY */}
           <div className="lg:col-span-4">
             <div className="flex items-center gap-3 mb-8">
               <div className="bg-emerald-600 p-2.5 rounded-xl text-white shadow-lg shadow-emerald-600/20">
@@ -36,7 +36,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* COLUMN 2: REGISTRATION NODES */}
+          {/* COLUMN 2: FILING NODES (DYNAMIC LINKS) */}
           <div className="lg:col-span-2">
             <h4 className="text-[10px] font-black text-white uppercase tracking-[0.4em] mb-10 text-emerald-500">Filing Nodes</h4>
             <ul className="space-y-5 text-[11px] font-black uppercase tracking-widest">
@@ -58,9 +58,9 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* COLUMN 4: COMPLIANCE DESK */}
+          {/* COLUMN 4: COMPLIANCE DESK (ACCESSION UNIT) */}
           <div className="lg:col-span-4 bg-white/[0.03] p-10 rounded-[2.5rem] border border-white/5 backdrop-blur-sm">
-            <h4 className="text-[10px] font-black text-white uppercase tracking-[0.4em] mb-10">Compliance Desk</h4>
+            <h4 className="text-white text-[10px] font-black uppercase tracking-[0.4em] mb-10">Compliance Desk</h4>
             <ul className="space-y-8">
               <li className="flex items-start gap-4">
                 <div className="bg-emerald-500/10 p-2.5 rounded-xl text-emerald-500"><ShieldCheck size={18}/></div>
@@ -81,7 +81,7 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* BOTTOM BAR: FINAL MEASURE */}
+        {/* BOTTOM BAR: FINAL MEASURE & INFRASTRUCTURE STATUS */}
         <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center gap-3">
             <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />

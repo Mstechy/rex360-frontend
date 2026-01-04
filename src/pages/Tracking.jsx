@@ -96,6 +96,16 @@ const Tracking = () => {
                 </div>
               </div>
 
+{/* Add this inside your Status Card Results */}
+<div className="mt-8 flex items-center gap-4 border-t border-slate-50 pt-6">
+  <div className="bg-green-50 px-4 py-2 rounded-xl">
+    <span className="text-[10px] font-black text-green-600 uppercase">Strategic Delivery: Jan 06</span>
+  </div>
+  {/* Red Cross Line for Original Timeline */}
+  <span className="text-[10px] font-bold text-slate-300 line-through decoration-red-500 decoration-2">
+    Estimated: Jan 15
+  </span>
+</div>
               {/* ACCREDITATION DISCLOSURE (The Protection Part) */}
               <div className="bg-slate-950 rounded-[2.5rem] p-10 text-white flex flex-col md:flex-row items-center gap-8 border border-white/5">
                 <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center shrink-0">
